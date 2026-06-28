@@ -6,3 +6,7 @@ dist/
 *.log
 AGENTS.md
 target/
+.agents/
+apps/web/verify-e2e.ts
+bin/
+curl_debug.txt

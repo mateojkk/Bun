@@ -4,14 +4,14 @@ const CLI = "/tmp/stellar"
 const RPC = process.env.STELLAR_RPC || "https://soroban-testnet.stellar.org"
 const HORIZON = process.env.STELLAR_HORIZON || "https://horizon-testnet.stellar.org"
 const SECRET = process.env.AGENT_SECRET || ""
-export const ESCROW_CONTRACT_ID = process.env.ESCROW_CONTRACT_ID || "CCCYTFPBLSIM23DM3W5V6Q6RKFUBNTYKD3SZO22565NAMR54XYVRZK6F"
+export const ESCROW_CONTRACT_ID = process.env.ESCROW_CONTRACT_ID || "CASIRVAC6X7WNOWLUYUE32DS3HS5DOTLCA7NBPSTM2U2QD6BO27A4FDH"
 const ESCROW = ESCROW_CONTRACT_ID
 const ZK = process.env.ZK_VERIFIER_CONTRACT_ID || "CCOBSM6WIWEJWF3PTB5TUUAF22UIE7DZB67F7XO27ARG5FHVWMVRXKXF"
-const USDC_CONTRACT = process.env.USDC_CONTRACT_ID || "CBIELTK6YBZJU5UP2WWQEQ4IOPN5CQODHX6JJQYIIPUZMZ7ZDGK2XHO"
+const USDC_CONTRACT = process.env.USDC_CONTRACT_ID || "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA"
 
 function cli(args: string): string {
   try {
-    return execSync(`${CLI} ${args}`, {
+    return execSync(`${CLI} ${args} 2>&1`, {
       encoding: "utf-8",
       timeout: 60000,
     })

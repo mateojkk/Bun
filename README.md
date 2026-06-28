@@ -26,7 +26,7 @@ Every month, you pay $15.99 for Netflix, $20 for Claude, $11.99 for Spotify — 
                                           └──────────┘
 ```
 
-1. **Top up** your Bun account with XLM
+1. **Top up** your Bun account with USDC
 2. **Subscribe** to a service — your max spend is locked in an escrow contract
 3. **Use** the service — the provider reports your usage
 4. **Auto-settle** — an agent settles payments at cycle end. Used funds go to the provider, unused funds return to you.
@@ -88,8 +88,8 @@ All verification runs natively on Soroban using BLS12-381 curves. No external pr
 1. Visit / → landing page
 2. Click "Launch App" → sign in with email (Privy OTP)
 3. First login: choose username → BunAccount created on Stellar
-4. Dashboard: see balance (0 XLM)
-5. Account page: Top Up with testnet XLM
+4. Dashboard: see balance (0 USDC)
+5. Account page: Top Up with testnet USDC
 6. Browse Services → Subscribe (funds escrowed)
 7. Record Usage (provider reports consumption)
 8. Agent auto-settles at cycle end
@@ -129,9 +129,11 @@ STELLAR_HORIZON=https://horizon-testnet.stellar.org
 AGENT_SECRET=            # Stellar secret key
 NEXT_PUBLIC_PRIVY_APP_ID= # Privy App ID
 PRIVY_APP_SECRET=         # Privy App Secret
+PRIVY_JWKS_URL=           # Privy JWKS URL for token verification
 MONGODB_URI=              # MongoDB connection
 ESCROW_CONTRACT_ID=       # Deployed escrow contract
 ZK_VERIFIER_CONTRACT_ID=  # Deployed ZK verifier contract
+USDC_CONTRACT_ID=         # Circle USDC Token Contract
 ```
 
 ## Architecture

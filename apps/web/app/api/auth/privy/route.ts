@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   }
 
   const keypair = generateStellarKeypair()
-  const partyId = keypair.publicKey
+  const partyId = keypair.publicKey()
   const secretKey = keypair.secret()
 
   // Fund with Friendbot to ensure account exists and can pay gas
