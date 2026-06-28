@@ -1,7 +1,8 @@
 import { getPartyId, getDisplayName } from "@/lib/auth"
-import { getBalance } from "@/lib/stellar"
+import { getBalance, ESCROW_CONTRACT_ID } from "@/lib/stellar"
 import { redirect } from "next/navigation"
 import TopUpForm from "@/components/TopUpForm"
+import CopyAddress from "@/components/CopyAddress"
 
 export default async function AccountPage() {
   const partyId = await getPartyId()
@@ -14,7 +15,18 @@ export default async function AccountPage() {
     <div className="px-4 sm:px-6 py-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold mb-2 text-white">Bun Account</h1>
-        {name && <p className="text-oc-muted text-sm">Signed in as {name}</p>}
+        {name && <p className="text-oc-muted text-sm mb-4">Signed in as {name}</p>}
+        
+        <div className="space-y-2 mt-4">
+          <div>
+            <div className="text-xs text-oc-muted uppercase tracking-wider font-semibold">Your Address</div>
+            <CopyAddress address={partyId} />
+          </div>
+          <div className="pt-2">
+            <div className="text-xs text-oc-muted uppercase tracking-wider font-semibold">Escrow Contract ID</div>
+            <CopyAddress address={ESCROW_CONTRACT_ID} />
+          </div>
+        </div>
       </div>
 
       <div className="p-6 bg-white/5 border border-white/5 rounded-lg">
@@ -28,3 +40,4 @@ export default async function AccountPage() {
     </div>
   )
 }
+
