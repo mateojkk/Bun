@@ -90,19 +90,70 @@ export async function getBalance(publicKey: string): Promise<string> {
   }
 }
 
-export async function fundTestnet(recipientPublicKey: string) {
-  // Derive agent public key
-  const agentPub = cli(`keys address ${SECRET}`).trim()
-  // Transfer 10 USDC (10_0000000 units with 7 decimals) from agent to user
-  const out = cli(
-    `contract invoke --id ${USDC_CONTRACT} --network testnet --source-account ${SECRET} -- transfer` +
-    ` --from ${agentPub}` +
-    ` --to ${recipientPublicKey}` +
-    ` --amount 100000000`
-  )
-  const success = !out.includes('error') && !out.includes('Error') && !out.includes('failed')
-  if (!success) {
-    return { ok: false, error: out.slice(0, 200) }
+export async function fundTestnet(recipientPublicKey: string, recipientSecret?: string) {
+  try {
+    const {
+      Keypair,
+      Networks,
+      TransactionBuilder,
+      Asset,
+      Operation,
+      BASE_FEE,
+      Horizon,
+    } = await import("@stellar/stellar-sdk")
+
+    const server = new Horizon.Server(HORIZON)
+    const agentKeypair = Keypair.fromSecret(SECRET)
+    const usdcAsset = new Asset(
+      "USDC",
+      "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
+    )
+
+    // Step 1: ensure recipient has a USDC trustline; create one if not
+    const recipientAccountData = await server.loadAccount(recipientPublicKey)
+    const hasTrustline = recipientAccountData.balances.some(
+      (b: any) =>
+        b.asset_code === "USDC" &&
+        b.asset_issuer === "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
+    )
+
+    if (!hasTrustline && recipientSecret) {
+      const recipientKeypair = Keypair.fromSecret(recipientSecret)
+      const trustTx = new TransactionBuilder(recipientAccountData, {
+        fee: BASE_FEE,
+        networkPassphrase: Networks.TESTNET,
+      })
+        .addOperation(Operation.changeTrust({ asset: usdcAsset, limit: "1000000" }))
+        .setTimeout(30)
+        .build()
+      trustTx.sign(recipientKeypair)
+      await server.submitTransaction(trustTx)
+    }
+
+    // Step 2: send 10 USDC from agent to recipient
+    const agentAccount = await server.loadAccount(agentKeypair.publicKey())
+    const payTx = new TransactionBuilder(agentAccount, {
+      fee: BASE_FEE,
+      networkPassphrase: Networks.TESTNET,
+    })
+      .addOperation(
+        Operation.payment({
+          destination: recipientPublicKey,
+          asset: usdcAsset,
+          amount: "10",
+        })
+      )
+      .setTimeout(30)
+      .build()
+    payTx.sign(agentKeypair)
+    await server.submitTransaction(payTx)
+
+    return { ok: true }
+  } catch (e: any) {
+    const detail =
+      e?.response?.data?.extras?.result_codes ||
+      e?.message ||
+      "unknown error"
+    return { ok: false, error: typeof detail === "object" ? JSON.stringify(detail) : detail }
   }
-  return { ok: true }
 }
