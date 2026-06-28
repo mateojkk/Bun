@@ -27,7 +27,7 @@ export default function TopUpForm({
         setTimeout(() => window.location.reload(), 2000)
       } else {
         setStatus(
-          `Could not transfer USDC — agent may be out of funds. Try again later.`
+          `Could not transfer USDC - agent may be out of funds. Try again later.`
         )
       }
     } catch (e: any) {

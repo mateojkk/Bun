@@ -91,7 +91,7 @@ function SubscribeForm() {
           disabled={loading}
           className="w-full px-4 py-3 bg-white text-oc-black rounded-md hover:bg-oc-lightest transition font-medium text-sm disabled:opacity-50"
         >
-          {loading ? "Creating escrow..." : `Subscribe — Lock ${amount || "0"} USDC`}
+          {loading ? "Creating escrow..." : `Subscribe - Lock ${amount || "0"} USDC`}
         </button>
 
         {status && (

@@ -2,15 +2,15 @@
 
 > A privacy-preserving, usage-based payment protocol built on Stellar Soroban.
 
-**Pre-Launch — Stellar Testnet · Seeking Mainnet Funding**
+**Pre-Launch - Stellar Testnet · Seeking Mainnet Funding**
 
 ---
 
 ## The Problem
 
-Every month, you pay $15.99 for Netflix, $20 for Claude, $11.99 for Spotify — regardless of whether you used them twice or every day. The subscription economy charges you for access, not usage. And every provider learns your consumption patterns.
+Every month, you pay $15.99 for Netflix, $20 for Claude, $11.99 for Spotify - regardless of whether you used them twice or every day. The subscription economy charges you for access, not usage. And every provider learns your consumption patterns.
 
-**Bun fixes both.** You pay only for what you actually consume. And your data stays fragmented across providers — enforced cryptographically, not by policy.
+**Bun fixes both.** You pay only for what you actually consume. And your data stays fragmented across providers - enforced cryptographically, not by policy.
 
 ## How It Works
 
@@ -27,9 +27,9 @@ Every month, you pay $15.99 for Netflix, $20 for Claude, $11.99 for Spotify — 
 ```
 
 1. **Top up** your Bun account with USDC
-2. **Subscribe** to a service — your max spend is locked in an escrow contract
-3. **Use** the service — the provider reports your usage
-4. **Auto-settle** — an agent settles payments at cycle end. Used funds go to the provider, unused funds return to you.
+2. **Subscribe** to a service - your max spend is locked in an escrow contract
+3. **Use** the service - the provider reports your usage
+4. **Auto-settle** - an agent settles payments at cycle end. Used funds go to the provider, unused funds return to you.
 
 ## Anti-Scam by Design
 
@@ -37,18 +37,18 @@ Every month, you pay $15.99 for Netflix, $20 for Claude, $11.99 for Spotify — 
 |---------|--------------------|
 | Subscriber uses service then refuses to pay | Funds already escrowed at subscription time |
 | Provider overcharges | Capped at `maxSpend` set by subscriber |
-| Agent steals funds | Agent can only call `settle()` — never access escrow |
+| Agent steals funds | Agent can only call `settle()` - never access escrow |
 | Provider sees subscriber's other services | Canton-grade privacy via ZK on Stellar |
 | Subscriber under-reports usage | Provider (or oracle) controls `RecordUsage` |
 
-**Funds are locked in a Soroban escrow contract before usage begins.** Settlement is automatic — no approval step, no dispute, no scam.
+**Funds are locked in a Soroban escrow contract before usage begins.** Settlement is automatic - no approval step, no dispute, no scam.
 
 ## Privacy via ZK (BLS12-381)
 
 Stellar is a public ledger. Privacy comes from cryptographic commitments:
 
 1. Subscriber commits `sha256(balance + salt)` to the ZK Verifier contract
-2. Provider sees only the escrow amount — never the subscriber's total balance
+2. Provider sees only the escrow amount - never the subscriber's total balance
 3. At settlement, the subscriber reveals the preimage; the contract verifies `balance ≥ required`
 4. Provider receives payment but never learns the subscriber's full financial picture
 
@@ -73,14 +73,14 @@ All verification runs natively on Soroban using BLS12-381 curves. No external pr
 | `ZkVerifierContract` | `CCOBSM6WIWEJWF3PTB5TUUAF22UIE7DZB67F7XO27ARG5FHVWMVRXKXF` | BLS12-381 commit-reveal balance verification |
 
 **Escrow Contract API:**
-- `init(provider, subscriber, agent, amount, unit_price, flat_rate, cycle_end, service_name)` — create escrow
-- `record_usage(additional)` — provider reports usage
-- `settle()` — agent settles at cycle end
-- `get_escrow()` — read escrow state
+- `init(provider, subscriber, agent, amount, unit_price, flat_rate, cycle_end, service_name)` - create escrow
+- `record_usage(additional)` - provider reports usage
+- `settle()` - agent settles at cycle end
+- `get_escrow()` - read escrow state
 
 **ZK Verifier API:**
-- `commit_balance(subscriber, balance_hash)` — subscriber commits to balance
-- `verify(preimage, required_minimum)` — verifies preimage + minimum balance
+- `commit_balance(subscriber, balance_hash)` - subscriber commits to balance
+- `verify(preimage, required_minimum)` - verifies preimage + minimum balance
 
 ## Demo Flow
 
@@ -99,13 +99,13 @@ All verification runs natively on Soroban using BLS12-381 curves. No external pr
 
 ## Why Bun Wins
 
-- **Real economic problem** — the subscription economy is broken for consumers
-- **Anti-scam at protocol level** — escrow enforced by Soroban, not by trust
-- **Privacy on a public ledger** — ZK balance commitments natively on Soroban
-- **Fully automated** — agent handles settlement, zero manual intervention
-- **Production-ready UX** — dark mode, responsive, passwordless auth, zero blockchain concepts visible
-- **5-second finality** — Stellar confirms settlements in seconds
-- **Mainnet-ready architecture** — built to production spec, running on testnet for staged rollout
+- **Real economic problem** - the subscription economy is broken for consumers
+- **Anti-scam at protocol level** - escrow enforced by Soroban, not by trust
+- **Privacy on a public ledger** - ZK balance commitments natively on Soroban
+- **Fully automated** - agent handles settlement, zero manual intervention
+- **Production-ready UX** - dark mode, responsive, passwordless auth, zero blockchain concepts visible
+- **5-second finality** - Stellar confirms settlements in seconds
+- **Mainnet-ready architecture** - built to production spec, running on testnet for staged rollout
 
 ## Getting Started
 
@@ -140,12 +140,12 @@ USDC_CONTRACT_ID=         # Circle USDC Token Contract
 ## Architecture
 
 ```
-apps/web/          — Next.js 16 frontend (App Router, Turbopack)
-api/               — Vercel serverless functions (agent, ZK proofs, Stellar RPC)
-contracts/         — Soroban smart contracts (Rust + WASM)
-packages/shared/   — TypeScript types
+apps/web/          - Next.js 16 frontend (App Router, Turbopack)
+api/               - Vercel serverless functions (agent, ZK proofs, Stellar RPC)
+contracts/         - Soroban smart contracts (Rust + WASM)
+packages/shared/   - TypeScript types
 ```
 
 ---
 
-Built on Stellar Soroban. Pre-launch testnet phase — June 2026. Seeking mainnet funding.
+Built on Stellar Soroban. Pre-launch testnet phase - June 2026. Seeking mainnet funding.
