@@ -1,10 +1,17 @@
 import type { Metadata } from "next"
+import { IBM_Plex_Mono } from "next/font/google"
 import "./globals.css"
 
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["500", "700"],
+  variable: "--font-mono",
+})
+
 export const metadata: Metadata = {
-  title: "分 Bun — Pay only for what you use",
+  title: "分 Bun. Pay only for what you use.",
   description:
-    "Privacy-preserving usage-based agentic commerce on Canton Network",
+    "Privacy-preserving usage-based commerce on Stellar. Escrowed. Automated. ZK-verified.",
 }
 
 export default function RootLayout({
@@ -13,44 +20,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
-        <nav className="border-b bg-white">
-          <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
-            <a
-              href="/dashboard"
-              className="text-xl font-bold tracking-tight"
-            >
-              分 Bun
-            </a>
-            <div className="flex gap-4 text-sm">
-              <a
-                href="/dashboard"
-                className="hover:text-blue-600 transition"
-              >
-                Dashboard
-              </a>
-              <a
-                href="/subscriptions"
-                className="hover:text-blue-600 transition"
-              >
-                Subscriptions
-              </a>
-              <a
-                href="/usage"
-                className="hover:text-blue-600 transition"
-              >
-                Usage
-              </a>
-              <a
-                href="/settlements"
-                className="hover:text-blue-600 transition"
-              >
-                Settlements
-              </a>
-            </div>
-          </div>
-        </nav>
+    <html lang="en" className="dark h-full">
+      <body
+        className={`${mono.variable} font-sans bg-oc-black text-oc-light antialiased min-h-screen`}
+      >
         {children}
       </body>
     </html>

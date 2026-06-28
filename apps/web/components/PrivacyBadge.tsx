@@ -1,10 +1,10 @@
 export default function PrivacyBadge() {
   return (
-    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-      <h3 className="font-semibold text-green-800 mb-2">
+    <div className="p-4 bg-oc-black border border-white/5 rounded-lg">
+      <h3 className="font-semibold text-oc-light mb-2">
         Privacy Status
       </h3>
-      <ul className="space-y-1 text-sm text-green-700">
+      <ul className="space-y-1 text-sm text-oc-lighter">
         <li>
           <span className="mr-1">&#x2713;</span> Your other
           subscriptions: hidden from this provider

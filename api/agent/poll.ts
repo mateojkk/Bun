@@ -1,7 +1,19 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
+import {
+  SorobanRpc,
+  Contract,
+  Keypair,
+  TransactionBuilder,
+  BASE_FEE,
+  Networks,
+} from "@stellar/stellar-sdk"
 
-const DAML_JSON_API =
-  process.env.DAML_JSON_API || "http://localhost:7575"
+const rpc = new SorobanRpc.Server(
+  process.env.STELLAR_RPC || "https://soroban-testnet.stellar.org"
+)
+const agentKeypair = Keypair.fromSecret(
+  process.env.AGENT_SECRET || Keypair.random().secret()
+)
 
 export default async function handler(
   req: VercelRequest,
@@ -11,75 +23,39 @@ export default async function handler(
     return res.status(405).json({ error: "POST only" })
   }
 
-  const activeSubs = await fetch(`${DAML_JSON_API}/v1/query`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      templateIds: ["Main:Subscription"],
-      query: {},
-    }),
-  }).then((r) => r.json())
-
-  const now = new Date().toISOString()
-  const settled: string[] = []
-  const proposed: string[] = []
-
-  for (const { contractId, payload } of activeSubs.result || []) {
-    if (payload.status !== "Active") continue
-
-    const cycleEnded = new Date(payload.cycleEnd) <= new Date()
-    if (!cycleEnded) continue
-
-    try {
-      const proposalRes = await fetch(
-        `${DAML_JSON_API}/v1/exercise`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            templateId: "Main:Subscription",
-            contractId,
-            choice: "ProposeSettlement",
-            argument: {
-              calculatedAmount: String(
-                Number(payload.usage) * Number(payload.unitPrice)
-              ),
-              periodStart: payload.lastSettled,
-              periodEnd: payload.cycleEnd,
-            },
-          }),
-        }
-      )
-      const proposal = await proposalRes.json()
-
-      if (proposal.result?.contractId) {
-        const proposalCid = proposal.result.contractId
-
-        if (payload.autoApprove) {
-          await fetch(`${DAML_JSON_API}/v1/exercise`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              templateId: "Main:SettlementProposal",
-              contractId: proposalCid,
-              choice: "ApproveAndSettle",
-              argument: {},
-            }),
-          })
-          settled.push(contractId)
-        } else {
-          proposed.push(contractId)
-        }
-      }
-    } catch (err) {
-      console.error(`Agent error for ${contractId}:`, err)
-    }
+  const { escrowContractId } = req.body
+  if (!escrowContractId) {
+    return res.status(400).json({ error: "escrowContractId required" })
   }
 
-  res.status(200).json({
-    status: "agent_cycle_complete",
-    settled,
-    proposed,
-    timestamp: now,
-  })
+  const settled: string[] = []
+
+  try {
+    const source = await rpc.getAccount(
+      agentKeypair.publicKey()
+    )
+    const contract = new Contract(escrowContractId)
+    const tx = new TransactionBuilder(source, {
+      fee: BASE_FEE,
+      networkPassphrase: Networks.TESTNET,
+    })
+      .addOperation(contract.call("settle"))
+      .setTimeout(30)
+      .build()
+
+    const prepared = await rpc.prepareTransaction(tx)
+    prepared.sign(agentKeypair)
+
+    const result = await rpc.sendTransaction(prepared)
+    settled.push(escrowContractId)
+
+    res.status(200).json({
+      status: "agent_cycle_complete",
+      settled,
+      hash: result.hash,
+      timestamp: new Date().toISOString(),
+    })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
 }

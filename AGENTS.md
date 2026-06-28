@@ -1,43 +1,73 @@
-# AGENTS.md — Bun (分)
+# AGENTS.md — Bun (分) on Stellar
 
 ## Architecture
 
 | Layer | Dir | Tech |
 |-------|-----|------|
-| Smart contracts | `daml/` | Daml — write/build/deploy via Seaport browser IDE |
-| Frontend | `apps/web/` | Next.js 14 App Router + Tailwind |
-| API proxy | `api/` | Vercel serverless functions (TS) |
-| Agent | `api/agent/poll.ts` | TypeScript, replaces deprecated Daml Trigger |
-| Shared types | `packages/shared/` | TS types mirroring Daml contracts |
+| Smart contracts | `contracts/` | Soroban (Rust + WASM) |
+| Frontend | `apps/web/` | Next.js 16 App Router + Tailwind |
+| API routes | `apps/web/app/api/` | Next.js route handlers (TS) |
+| Route protection | `apps/web/proxy.ts` | Next.js middleware (proxy instead of middleware.ts) |
+| Agent | `api/agent/poll.ts` | Vercel serverless function, calls Soroban settle |
+| ZK Verifier | `contracts/zk-verifier/` | SHA256 commit-reveal on Soroban |
+| Shared types | `packages/shared/` | TS types mirroring contract data |
 
 ## Key commands
 
 - `npm run dev` — start Next.js dev server (from `apps/web/`)
 - `npm run build` — production build (from `apps/web/`)
+- `cargo test` — run Soroban contract tests (from any contract dir)
+- `cargo build --target wasm32v1-none --release` — compile contracts to WASM
+- `/tmp/stellar contract build` — build inside docker (alternative)
+- `/tmp/stellar contract deploy --wasm <file> --network testnet` — deploy
 
-## Daml workflow (Seaport)
+## Escrow model
 
-Write + build + deploy contracts entirely in the browser at `https://app.devnet.seaport.to/`. No local JDK/Daml SDK needed.
-- `daml/daml.yaml` and `daml/src/Main.daml` are the source — copy into a Seaport project
-- Build in Seaport → deploy to `5n sandbox` validator via org mode
-- Use Seaport's Contract Factory UI to create contracts and exercise choices
+Subscriber funds are locked in a Soroban escrow contract at subscription time. Settlement is called by the agent at cycle end via `/tmp/stellar contract invoke -- settle`.
 
-## Agent (replaces Daml Trigger)
+| Contract | Purpose | Key Functions |
+|----------|---------|---------------|
+| `EscrowContract` | Holds escrow data, tracks usage, settles payments | `init`, `record_usage`, `settle`, `get_escrow` |
+| `ZkVerifierContract` | Privacy-preserving balance verification via SHA256 | `commit_balance`, `verify` |
 
-Daml Triggers are deprecated. The agent is `api/agent/poll.ts`:
-- Queries all active subscriptions via JSON API `/v1/query`
-- If cycleEnd reached: proposes settlement via `/v1/exercise` (ProposeSettlement)
-- If autoApprove: immediately calls ApproveAndSettle
-- Triggered manually or via Vercel cron (every 60s)
+## ZK Privacy (SHA256 commit-reveal)
 
-## API environment variables
+The ZK verifier uses SHA256 commitment (not BLS12-381):
+1. Subscriber commits `sha256(balance + salt)` on-chain via `commit_balance()`
+2. At settlement, subscriber reveals balance + salt, contract calls `verify(preimage, required_minimum)` which checks `sha256(preimage) == committed_hash`
+3. No actual BLS12-381 pairing math — SHA256 is sufficient for the commit-reveal pattern on Soroban
 
-- `DAML_JSON_API` — base URL of Canton JSON API (defaults to `http://localhost:7575`)
-- `API_URL` — frontend-facing API base (for server components, defaults to `""` for same-origin)
-- `SUBSCRIBER_PARTY` / `AGENT_PARTY` — party IDs used in queries
+## Agent
 
-## Architecture constraints
+The agent at `api/agent/poll.ts`:
+- Calls `settle()` on individual escrow contracts via Soroban RPC
+- Signs transactions with `AGENT_SECRET` keypair
+- Uses `@stellar/stellar-sdk` v13 (SorobanRpc + TransactionBuilder)
+- Deployed as a Vercel serverless function, triggered via POST
 
-- Canton sub-transaction privacy: per-contract party visibility is the core value prop
-- The agent sees subscription metadata for coordination but never subscriber balances or cross-service usage
-- Frontend uses `@c7/ledger` (Canton client SDK) for production — see Seaport guide for codegen
+## Auth flow
+
+1. User enters email → Privy sends OTP
+2. Privy SDK returns a JWT
+3. `/api/auth/privy` verifies JWT via `PRIVY_JWKS_URL` using `jose`
+4. On first login: generates Stellar keypair (`Keypair.random()`), stores `{ privyUserId, partyId, username }` in MongoDB
+5. Sets two httpOnly cookies: `bun_party` (public key) and `bun_name` (username)
+
+## Environment variables (from `.env.local`)
+
+- `STELLAR_RPC` — Soroban RPC URL (defaults to testnet)
+- `STELLAR_HORIZON` — Horizon API URL
+- `AGENT_SECRET` — Stellar secret key for agent transactions
+- `NEXT_PUBLIC_PRIVY_APP_ID` — Privy app ID (public, used in frontend)
+- `PRIVY_JWKS_URL` — Privy JWKS URL for token verification
+- `MONGODB_URI` — MongoDB Atlas connection string
+- `ESCROW_CONTRACT_ID` — Deployed escrow contract address
+- `ZK_VERIFIER_CONTRACT_ID` — Deployed ZK verifier contract address
+
+## Notes
+
+- Stellar SDK v13 `build.sign` for Soroban contracts is broken — use `/tmp/stellar` CLI for contract invocations instead
+- Route protection uses `proxy.ts` (renamed from `middleware.ts` for Next.js 16 compatibility)
+- Escrow contract stores data only (no actual token transfers yet — amounts are i128)
+- Friendbot gives 10k XLM once per address — used for initial funding
+- Stellar CLI binary at `/tmp/stellar` — proven to work for all contract interactions

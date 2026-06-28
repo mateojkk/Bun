@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  input, select, textarea {
+    @apply bg-white/5 border border-white/10 text-white;
+  }
+  input::placeholder, textarea::placeholder {
+    @apply text-oc-muted;
+  }
+  input:focus, select:focus, textarea:focus {
+    @apply border-oc-gray outline-none ring-0;
+  }
+  input[type="checkbox"] {
+    @apply bg-white/10 border-white/20 rounded;
+    accent-color: #8E8B8B;
+  }
+}
