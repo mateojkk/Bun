@@ -1,8 +1,8 @@
 # Bun: Pay Only for What You Use
 
-> A privacy-preserving usage-based commerce system built on Stellar.
+> A privacy-preserving, usage-based payment protocol built on Stellar Soroban.
 
-**Hackathon submission** — Stellar + Soroban + ZK Privacy
+**Pre-Launch — Stellar Testnet · Seeking Mainnet Funding**
 
 ---
 
@@ -97,14 +97,15 @@ All verification runs natively on Soroban using BLS12-381 curves. No external pr
 10. Unused escrow automatically returned
 ```
 
-## Why This Wins
+## Why Bun Wins
 
 - **Real economic problem** — the subscription economy is broken for consumers
 - **Anti-scam at protocol level** — escrow enforced by Soroban, not by trust
-- **Privacy on a public ledger** — ZK proofs via BLS12-381, natively on Soroban
+- **Privacy on a public ledger** — ZK balance commitments natively on Soroban
 - **Fully automated** — agent handles settlement, zero manual intervention
 - **Production-ready UX** — dark mode, responsive, passwordless auth, zero blockchain concepts visible
-- **5-second finality** — Stellar testnet confirms settlements in seconds
+- **5-second finality** — Stellar confirms settlements in seconds
+- **Mainnet-ready architecture** — built to production spec, running on testnet for staged rollout
 
 ## Getting Started
 
@@ -147,4 +148,4 @@ packages/shared/   — TypeScript types
 
 ---
 
-Built for the Stellar hackathon. June 2026.
+Built on Stellar Soroban. Pre-launch testnet phase — June 2026. Seeking mainnet funding.
