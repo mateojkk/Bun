@@ -140,7 +140,7 @@ export async function fundTestnet(recipientPublicKey: string, recipientSecret?: 
         Operation.payment({
           destination: recipientPublicKey,
           asset: usdcAsset,
-          amount: "10",
+          amount: "2.5",
         })
       )
       .setTimeout(30)
