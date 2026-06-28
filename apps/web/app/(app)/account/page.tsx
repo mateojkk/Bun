@@ -22,10 +22,6 @@ export default async function AccountPage() {
             <div className="text-xs text-oc-muted uppercase tracking-wider font-semibold">Your Address</div>
             <CopyAddress address={partyId} />
           </div>
-          <div className="pt-2">
-            <div className="text-xs text-oc-muted uppercase tracking-wider font-semibold">Escrow Contract ID</div>
-            <CopyAddress address={ESCROW_CONTRACT_ID} />
-          </div>
         </div>
       </div>
 
