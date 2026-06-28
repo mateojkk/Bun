@@ -99,13 +99,13 @@ All verification runs natively on Soroban using BLS12-381 curves. No external pr
 
 ## Why Bun Wins
 
-- **Real economic problem** - the subscription economy is broken for consumers
-- **Anti-scam at protocol level** - escrow enforced by Soroban, not by trust
-- **Privacy on a public ledger** - ZK balance commitments natively on Soroban
-- **Fully automated** - agent handles settlement, zero manual intervention
-- **Production-ready UX** - dark mode, responsive, passwordless auth, zero blockchain concepts visible
-- **5-second finality** - Stellar confirms settlements in seconds
-- **Mainnet-ready architecture** - built to production spec, running on testnet for staged rollout
+- Bun solves a **real economic problem**: the subscription economy charges consumers for access, not usage.
+- The protocol is **anti-scam by design**: escrow is enforced on-chain by Soroban, not by policy or trust.
+- **Privacy is preserved on a public ledger** through ZK balance commitments natively on Soroban.
+- Settlement is **fully automated**: the agent handles cycle-end payments with zero manual intervention.
+- The UX is **production-ready**: dark mode, responsive design, passwordless auth, with no blockchain complexity exposed to users.
+- Transactions confirm in **under 5 seconds** on Stellar.
+- The architecture is **mainnet-ready**: built to production specifications, currently running on testnet for staged rollout.
 
 ## Getting Started
 

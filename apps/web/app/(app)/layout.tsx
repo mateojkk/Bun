@@ -34,7 +34,7 @@ export default async function AppLayout({
         <div className="px-4 sm:px-6 py-4 flex items-center gap-6">
           <Link href="/privacy" className="hover:text-oc-light transition">Privacy Policy</Link>
           <Link href="/terms" className="hover:text-oc-light transition">Terms of Service</Link>
-          <span>分 Bun - Stellar Testnet</span>
+          <span>分 Bun on Stellar Testnet</span>
         </div>
       </footer>
     </PrivyWrapper>

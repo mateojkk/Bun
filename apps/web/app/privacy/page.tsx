@@ -15,17 +15,13 @@ export default function PrivacyPage() {
             </p>
             <ul className="text-oc-gray leading-relaxed space-y-2 list-disc list-inside mb-3">
               <li>
-                <strong className="text-white">Authentication Data</strong> - handled via Privy during passwordless OTP
-                authentication. We receive a secure unique user ID from Privy, but we do not store your raw email
-                address directly on our servers.
+                <strong className="text-white">Authentication data</strong> is processed via Privy during passwordless OTP login. We receive a secure unique identifier from Privy but do not store your raw email address on our servers.
               </li>
               <li>
-                <strong className="text-white">Stellar Public Key (partyId)</strong> - a cryptographic public address
-                generated upon account creation to identify your account ledger and route payments.
+                A <strong className="text-white">Stellar public key (partyId)</strong> is generated upon account creation to identify your account on the ledger and route payments.
               </li>
               <li>
-                <strong className="text-white">Username</strong> - a display name of your choice, stored in our database
-                alongside your public key to personalize the interface.
+                A <strong className="text-white">username</strong> of your choice is stored in our database alongside your public key to personalise the interface.
               </li>
             </ul>
             <p className="text-oc-gray leading-relaxed">
@@ -93,10 +89,10 @@ export default function PrivacyPage() {
             </p>
             <ul className="text-oc-gray leading-relaxed space-y-2 list-disc list-inside mb-3">
               <li>
-                <code className="text-oc-lighter bg-white/5 px-1 rounded">bun_party</code> - stores your public key to route your session securely.
+                The <code className="text-oc-lighter bg-white/5 px-1 rounded">bun_party</code> cookie stores your public key and is used to route your session securely.
               </li>
               <li>
-                <code className="text-oc-lighter bg-white/5 px-1 rounded">bun_name</code> - stores your display username for UI personalization.
+                The <code className="text-oc-lighter bg-white/5 px-1 rounded">bun_name</code> cookie stores your display username for interface personalisation.
               </li>
             </ul>
             <p className="text-oc-gray leading-relaxed">
@@ -111,15 +107,13 @@ export default function PrivacyPage() {
             </p>
             <ul className="text-oc-gray leading-relaxed space-y-2 list-disc list-inside mb-3">
               <li>
-                <strong className="text-white">Privy</strong> - handles secure email OTP user login.
-                (See privacy details at <span className="text-oc-lighter">privy.io</span>).
+                <strong className="text-white">Privy</strong> handles secure email OTP authentication. For details, see the privacy policy at <span className="text-oc-lighter">privy.io</span>.
               </li>
               <li>
-                <strong className="text-white">MongoDB Atlas</strong> - hosts cloud database clusters storing account public keys and usernames.
-                (See compliance details at <span className="text-oc-lighter">mongodb.com</span>).
+                <strong className="text-white">MongoDB Atlas</strong> hosts our cloud database, which stores account public keys and usernames. For details, see the compliance documentation at <span className="text-oc-lighter">mongodb.com</span>.
               </li>
               <li>
-                <strong className="text-white">Stellar Network</strong> - execution protocol where all escrow smart contracts are executed.
+                The <strong className="text-white">Stellar Network</strong> is the execution protocol on which all escrow smart contracts operate.
               </li>
             </ul>
           </section>
