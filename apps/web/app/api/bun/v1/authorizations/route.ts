@@ -9,7 +9,7 @@ import {
   updateSubscriptionChainState,
   type BunSubscription,
 } from "@/lib/db"
-import { buildPreimageHex } from "@/lib/zk"
+
 import {
   CYCLE_SECONDS,
   escrowInit,
