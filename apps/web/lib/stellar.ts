@@ -1,4 +1,5 @@
 import { execSync } from "child_process"
+import fs from "fs"
 
 const CLI = "/tmp/stellar"
 const RPC = process.env.STELLAR_RPC || "https://soroban-testnet.stellar.org"
@@ -19,7 +20,20 @@ function requireEnv(key: string): string {
 /** Billing cycle duration in seconds; defaults to 900 (15 min) */
 export const CYCLE_SECONDS = Number(process.env.CYCLE_SECONDS || 900)
 
+function ensureCli() {
+  if (fs.existsSync(CLI)) return;
+  try {
+    execSync(`curl -sL https://github.com/stellar/stellar-cli/releases/download/v27.0.0/stellar-cli-27.0.0-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C /tmp && chmod +x /tmp/stellar`, {
+      timeout: 30000,
+      stdio: "ignore"
+    });
+  } catch (e) {
+    console.error("Failed to download stellar CLI");
+  }
+}
+
 function cli(args: string): string {
+  ensureCli();
   try {
     return execSync(`${CLI} ${args} 2>&1`, {
       encoding: "utf-8",
