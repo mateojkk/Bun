@@ -1,15 +1,15 @@
-import { execSync } from "child_process"
-import fs from "fs"
+import * as StellarSdk from "@stellar/stellar-sdk"
 
-const CLI = "/tmp/stellar"
 const RPC = process.env.STELLAR_RPC || "https://soroban-testnet.stellar.org"
 const HORIZON = process.env.STELLAR_HORIZON || "https://horizon-testnet.stellar.org"
 const SECRET = process.env.AGENT_SECRET || ""
 export const ESCROW_CONTRACT_ID = requireEnv("ESCROW_CONTRACT_ID")
 export const ZK_VERIFIER_CONTRACT_ID = requireEnv("ZK_VERIFIER_CONTRACT_ID")
-const ESCROW = ESCROW_CONTRACT_ID
-const ZK = ZK_VERIFIER_CONTRACT_ID
 const USDC_CONTRACT = requireEnv("USDC_CONTRACT_ID")
+
+const rpc = new StellarSdk.rpc.Server(RPC)
+const horizon = new StellarSdk.Horizon.Server(HORIZON)
+const networkPassphrase = StellarSdk.Networks.TESTNET
 
 function requireEnv(key: string): string {
   const v = process.env[key]
@@ -17,34 +17,7 @@ function requireEnv(key: string): string {
   return v
 }
 
-/** Billing cycle duration in seconds; defaults to 900 (15 min) */
 export const CYCLE_SECONDS = Number(process.env.CYCLE_SECONDS || 900)
-
-function ensureCli() {
-  if (fs.existsSync(CLI)) return;
-  try {
-    execSync(`curl -sL https://github.com/stellar/stellar-cli/releases/download/v22.0.1/stellar-cli-22.0.1-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C /tmp && chmod +x /tmp/stellar`, {
-      timeout: 60000,
-      stdio: "pipe"
-    });
-  } catch (e: any) {
-    console.error("Failed to download stellar CLI:", e?.stderr?.toString() || e?.message);
-    throw new Error("Could not install stellar-cli: " + (e?.stderr?.toString() || e?.message));
-  }
-}
-
-function cli(args: string): string {
-  ensureCli();
-  try {
-    return execSync(`${CLI} ${args} 2>&1`, {
-      encoding: "utf-8",
-      timeout: 60000,
-    })
-  } catch (e: any) {
-    if (e.stdout) return e.stdout
-    return JSON.stringify({ error: e.message?.slice?.(0, 200) || "cli failed" })
-  }
-}
 
 function toHex48(decimalStr: string) {
   let hex = BigInt(decimalStr).toString(16);
@@ -58,6 +31,53 @@ function formatG1(point: string[]) {
 
 function formatG2(point: string[][]) {
   return toHex48(point[0][0]) + toHex48(point[0][1]) + toHex48(point[1][0]) + toHex48(point[1][1]);
+}
+
+/**
+ * Submits a Soroban transaction safely bypassing the need for a CLI.
+ * Follows the simulate -> assemble -> sign -> send -> poll pattern.
+ */
+async function submitSorobanTransaction(
+  sourceSecret: string,
+  contractId: string,
+  method: string,
+  args: StellarSdk.xdr.ScVal[]
+) {
+  const keypair = StellarSdk.Keypair.fromSecret(sourceSecret)
+  const account = await rpc.getAccount(keypair.publicKey())
+  const contract = new StellarSdk.Contract(contractId)
+
+  let tx = new StellarSdk.TransactionBuilder(account, {
+    fee: StellarSdk.BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(contract.call(method, ...args))
+    .setTimeout(180)
+    .build()
+
+  const sim = await rpc.simulateTransaction(tx)
+  if (StellarSdk.rpc.Api.isSimulationError(sim)) {
+    return { ok: false, raw: `Simulation failed: ${sim.error}` }
+  }
+
+  tx = StellarSdk.rpc.assembleTransaction(tx, sim).build()
+  tx.sign(keypair)
+
+  const res = await rpc.sendTransaction(tx)
+  if (res.status === "ERROR") {
+    return { ok: false, raw: `Transaction failed: ${res.errorResult}` }
+  }
+
+  let getResponse = await rpc.getTransaction(res.hash)
+  while (getResponse.status === "NOT_FOUND") {
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    getResponse = await rpc.getTransaction(res.hash)
+  }
+
+  if (getResponse.status === "SUCCESS") {
+    return { ok: true, raw: res.hash }
+  }
+  return { ok: false, raw: `Transaction failed: ${getResponse.status}` }
 }
 
 export async function zkVerifyBalance(params: {
@@ -79,29 +99,45 @@ export async function zkVerifyBalance(params: {
 
   const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
 
-  const proofJson = JSON.stringify({
-    a: formatG1(proof.pi_a),
-    b: formatG2(proof.pi_b),
-    c: formatG1(proof.pi_c)
+  // Convert Groth16 proof arrays into flat hex strings
+  const aHex = formatG1(proof.pi_a);
+  const bHex = formatG2(proof.pi_b);
+  const cHex = formatG1(proof.pi_c);
+
+  // Construct the ScVal for `Proof`
+  // pub struct Proof { pub a: G1Affine, pub b: G2Affine, pub c: G1Affine }
+  // Soroban maps are sorted alphabetically by key
+  const proofScVal = StellarSdk.xdr.ScVal.scvMap([
+    new StellarSdk.xdr.ScMapEntry({
+      key: StellarSdk.nativeToScVal("a", { type: "symbol" }),
+      val: StellarSdk.nativeToScVal(Buffer.from(aHex, "hex"))
+    }),
+    new StellarSdk.xdr.ScMapEntry({
+      key: StellarSdk.nativeToScVal("b", { type: "symbol" }),
+      val: StellarSdk.nativeToScVal(Buffer.from(bHex, "hex"))
+    }),
+    new StellarSdk.xdr.ScMapEntry({
+      key: StellarSdk.nativeToScVal("c", { type: "symbol" }),
+      val: StellarSdk.nativeToScVal(Buffer.from(cHex, "hex"))
+    })
+  ]);
+
+  const pubSignalsScVals = publicSignals.map((s: string) => {
+    let hex = BigInt(s).toString(16).padStart(64, '0');
+    return StellarSdk.nativeToScVal(Buffer.from(hex, "hex"));
   });
+  const pubSignalsScVal = StellarSdk.xdr.ScVal.scvVec(pubSignalsScVals);
 
-  const pubSignalsJson = JSON.stringify(publicSignals.map((s: string) => {
-    let hex = BigInt(s).toString(16);
-    return hex.padStart(64, '0');
-  }));
-
-  const out = cli(
-    `contract invoke --id ${ZK} --network testnet --source-account ${params.subscriberSecret} -- verify_proof` +
-    ` --subscriber ${params.subscriber}` +
-    ` --proof '${proofJson}'` +
-    ` --pub_signals '${pubSignalsJson}'`
+  return submitSorobanTransaction(
+    params.subscriberSecret,
+    ZK_VERIFIER_CONTRACT_ID,
+    "verify_proof",
+    [
+      new StellarSdk.Address(params.subscriber).toScVal(),
+      proofScVal,
+      pubSignalsScVal
+    ]
   );
-
-  const lowered = out.toLowerCase()
-  const ok =
-    lowered.includes("true") ||
-    (out.includes("successfully") && !lowered.includes("false"))
-  return { ok, raw: out.slice(0, 200) }
 }
 
 export async function escrowInit(params: {
@@ -114,21 +150,24 @@ export async function escrowInit(params: {
   cycleEnd: number
   serviceName: string
 }) {
-  const agentPub = cli(`keys address ${SECRET}`).trim()
-
-  const out = cli(
-    `contract invoke --id ${ESCROW} --network testnet --source-account ${params.subscriberSecret} -- init` +
-    ` --provider ${params.provider}` +
-    ` --subscriber ${params.subscriber}` +
-    ` --agent ${agentPub}` +
-    ` --token_contract ${USDC_CONTRACT}` +
-    ` --amount ${params.amount}` +
-    ` --unit_price ${params.unitPrice}` +
-    ` --flat_rate ${params.flatRate}` +
-    ` --cycle_end ${params.cycleEnd}` +
-    ` --service_name ${params.serviceName}`
+  const agentKeypair = StellarSdk.Keypair.fromSecret(SECRET)
+  
+  return submitSorobanTransaction(
+    params.subscriberSecret,
+    ESCROW_CONTRACT_ID,
+    "init",
+    [
+      new StellarSdk.Address(params.provider).toScVal(),
+      new StellarSdk.Address(params.subscriber).toScVal(),
+      new StellarSdk.Address(agentKeypair.publicKey()).toScVal(),
+      new StellarSdk.Address(USDC_CONTRACT).toScVal(),
+      StellarSdk.nativeToScVal(BigInt(params.amount), { type: "i128" }),
+      StellarSdk.nativeToScVal(BigInt(params.unitPrice), { type: "i128" }),
+      StellarSdk.nativeToScVal(BigInt(params.flatRate), { type: "i128" }),
+      StellarSdk.nativeToScVal(BigInt(params.cycleEnd), { type: "u64" }),
+      StellarSdk.nativeToScVal(params.serviceName, { type: "symbol" })
+    ]
   )
-  return { ok: out.includes("successfully"), raw: out.slice(0, 200) }
 }
 
 export async function escrowRecordUsage(
@@ -137,13 +176,16 @@ export async function escrowRecordUsage(
   serviceName: string,
   additional: number
 ) {
-  const out = cli(
-    `contract invoke --id ${contractId || ESCROW} --network testnet --source-account ${SECRET} -- record_usage` +
-    ` --subscriber ${subscriber}` +
-    ` --service_name ${serviceName}` +
-    ` --additional ${additional}`
+  return submitSorobanTransaction(
+    SECRET, // The agent signs record_usage
+    contractId || ESCROW_CONTRACT_ID,
+    "record_usage",
+    [
+      new StellarSdk.Address(subscriber).toScVal(),
+      StellarSdk.nativeToScVal(serviceName, { type: "symbol" }),
+      StellarSdk.nativeToScVal(BigInt(additional), { type: "i128" })
+    ]
   )
-  return { ok: out.includes("successfully"), raw: out.slice(0, 200) }
 }
 
 export async function escrowSettle(
@@ -151,12 +193,15 @@ export async function escrowSettle(
   subscriber: string,
   serviceName: string
 ) {
-  const out = cli(
-    `contract invoke --id ${contractId || ESCROW} --network testnet --source-account ${SECRET} -- settle` +
-    ` --subscriber ${subscriber}` +
-    ` --service_name ${serviceName}`
+  return submitSorobanTransaction(
+    SECRET, // The agent signs settle
+    contractId || ESCROW_CONTRACT_ID,
+    "settle",
+    [
+      new StellarSdk.Address(subscriber).toScVal(),
+      StellarSdk.nativeToScVal(serviceName, { type: "symbol" })
+    ]
   )
-  return { ok: out.includes("successfully"), raw: out.slice(0, 200) }
 }
 
 export async function escrowGetData(
@@ -164,16 +209,32 @@ export async function escrowGetData(
   subscriber: string,
   serviceName: string
 ) {
-  const out = cli(
-    `contract invoke --id ${contractId || ESCROW} --network testnet --source-account ${SECRET} -- get_escrow` +
-    ` --subscriber ${subscriber}` +
-    ` --service_name ${serviceName}`
-  )
-  try {
-    return JSON.parse(out)
-  } catch {
-    return { raw: out.slice(0, 400) }
+  const contract = new StellarSdk.Contract(contractId || ESCROW_CONTRACT_ID)
+  
+  let tx = new StellarSdk.TransactionBuilder(await rpc.getAccount(StellarSdk.Keypair.fromSecret(SECRET).publicKey()), {
+    fee: StellarSdk.BASE_FEE,
+    networkPassphrase,
+  })
+    .addOperation(
+      contract.call(
+        "get_escrow",
+        new StellarSdk.Address(subscriber).toScVal(),
+        StellarSdk.nativeToScVal(serviceName, { type: "symbol" })
+      )
+    )
+    .setTimeout(180)
+    .build()
+
+  const sim = await rpc.simulateTransaction(tx)
+  if (StellarSdk.rpc.Api.isSimulationError(sim)) {
+    return { raw: `Simulation failed: ${sim.error}` }
   }
+  
+  if (StellarSdk.rpc.Api.isSimulationSuccess(sim) && sim.result?.retval) {
+    return StellarSdk.scValToNative(sim.result.retval)
+  }
+  
+  return { raw: "Simulation did not succeed" }
 }
 
 export async function getBalance(publicKey: string): Promise<string> {
@@ -200,17 +261,15 @@ export async function fundTestnet(recipientPublicKey: string, recipientSecret?: 
       Asset,
       Operation,
       BASE_FEE,
-      Horizon,
     } = await import("@stellar/stellar-sdk")
 
-    const server = new Horizon.Server(HORIZON)
     const agentKeypair = Keypair.fromSecret(SECRET)
     const usdcAsset = new Asset(
       "USDC",
       "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
     )
 
-    const recipientAccountData = await server.loadAccount(recipientPublicKey)
+    const recipientAccountData = await horizon.loadAccount(recipientPublicKey)
     const hasTrustline = recipientAccountData.balances.some(
       (b: any) =>
         b.asset_code === "USDC" &&
@@ -227,10 +286,10 @@ export async function fundTestnet(recipientPublicKey: string, recipientSecret?: 
         .setTimeout(30)
         .build()
       trustTx.sign(recipientKeypair)
-      await server.submitTransaction(trustTx)
+      await horizon.submitTransaction(trustTx)
     }
 
-    const agentAccount = await server.loadAccount(agentKeypair.publicKey())
+    const agentAccount = await horizon.loadAccount(agentKeypair.publicKey())
     const payTx = new TransactionBuilder(agentAccount, {
       fee: BASE_FEE,
       networkPassphrase: Networks.TESTNET,
@@ -245,7 +304,7 @@ export async function fundTestnet(recipientPublicKey: string, recipientSecret?: 
       .setTimeout(30)
       .build()
     payTx.sign(agentKeypair)
-    await server.submitTransaction(payTx)
+    await horizon.submitTransaction(payTx)
 
     return { ok: true }
   } catch (e: any) {
