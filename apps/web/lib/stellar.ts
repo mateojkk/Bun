@@ -123,8 +123,7 @@ export async function zkVerifyBalance(params: {
   ]);
 
   const pubSignalsScVals = publicSignals.map((s: string) => {
-    let hex = BigInt(s).toString(16).padStart(64, '0');
-    return StellarSdk.nativeToScVal(Buffer.from(hex, "hex"));
+    return StellarSdk.nativeToScVal(BigInt(s), { type: "u256" });
   });
   const pubSignalsScVal = StellarSdk.xdr.ScVal.scvVec(pubSignalsScVals);
 
