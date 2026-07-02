@@ -1,5 +1,17 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "PRIVY_JWKS_URL",
+    "MONGODB_URI",
+    "ESCROW_CONTRACT_ID",
+    "ZK_VERIFIER_CONTRACT_ID",
+    "USDC_CONTRACT_ID",
+    "CYCLE_SECONDS",
+    "STELLAR_RPC",
+    "STELLAR_HORIZON",
+    "AGENT_SECRET",
+    "NEXT_PUBLIC_PRIVY_APP_ID"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
