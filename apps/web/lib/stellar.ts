@@ -30,7 +30,8 @@ function formatG1(point: string[]) {
 }
 
 function formatG2(point: string[][]) {
-  return toHex48(point[0][0]) + toHex48(point[0][1]) + toHex48(point[1][0]) + toHex48(point[1][1]);
+  // ZCash BLS12-381 uncompressed G2 format: c1 then c0
+  return toHex48(point[0][1]) + toHex48(point[0][0]) + toHex48(point[1][1]) + toHex48(point[1][0]);
 }
 
 /**
