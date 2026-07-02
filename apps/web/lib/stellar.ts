@@ -70,8 +70,7 @@ export async function zkVerifyBalance(params: {
 
   const input = {
     balance: params.currentBalanceStroops.toString(),
-    required_minimum: params.requiredMinimumStroops.toString(),
-    subscriber_id: "0"
+    required_minimum: params.requiredMinimumStroops.toString()
   };
 
   const wasmPath = path.join(process.cwd(), "public", "zk_assets", "balance.wasm");
