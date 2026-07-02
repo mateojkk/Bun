@@ -28,25 +28,15 @@ function Checkout() {
 
   const [maxSpend, setMaxSpend] = useState(params.get("maxSpend") || "2")
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
-  const [zkReady, setZkReady] = useState<boolean | null>(null)
-  const [zkCommittedUsdc, setZkCommittedUsdc] = useState(0)
-  const [zkStale, setZkStale] = useState(false)
   const [status, setStatus] = useState("")
   const [loading, setLoading] = useState(false)
   const submitting = useRef(false)
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/account/balance").then((res) => res.json()),
-      fetch("/api/zk/status").then((res) => res.json()),
-    ])
-      .then(([balanceData, zkData]) => {
+    fetch("/api/account/balance")
+      .then((res) => res.json())
+      .then((balanceData) => {
         if (balanceData.ok) setWalletBalance(balanceData.balance)
-        if (zkData.ok) {
-          setZkReady(zkData.committed && !zkData.stale)
-          setZkCommittedUsdc(zkData.committedUsdc || 0)
-          setZkStale(Boolean(zkData.stale))
-        }
       })
       .catch(() => {})
   }, [])
@@ -64,19 +54,7 @@ function Checkout() {
     setLoading(true)
 
     try {
-      if (!zkReady || zkStale || Number(maxSpend) > zkCommittedUsdc) {
-        setStatus("Syncing private balance proof to Soroban (this takes a few seconds)...")
-        const zkRes = await fetch("/api/zk/commit", { method: "POST" })
-        const zkData = await zkRes.json()
-        if (!zkRes.ok || !zkData.ok) {
-          throw new Error(zkData.error || "Failed to sync private balance proof")
-        }
-        setZkReady(true)
-        setZkStale(false)
-        setZkCommittedUsdc(zkData.committedUsdc)
-      }
-
-      setStatus("Authorizing Soroban escrow...")
+      setStatus("Generating ZK proof and authorizing Soroban escrow...")
       const res = await fetch("/api/bun/v1/authorizations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -114,36 +92,39 @@ function Checkout() {
   const estimatedUnits = unitPrice > 0 ? Math.floor(Number(maxSpend || 0) / unitPrice) : 0
 
   return (
-    <main className="min-h-screen bg-oc-black text-oc-light flex items-center justify-center p-6">
+    <main className="min-h-screen bg-[#fafafa] text-black flex items-center justify-center p-6">
       <div className="w-full max-w-lg">
-        <a href="/dashboard" className="text-xs text-oc-muted hover:text-white transition">
-          ← Back to Bun
+        <a href="/dashboard" className="text-sm text-black/50 hover:text-black transition flex items-center gap-2 mb-6">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to Bun
         </a>
-        <div className="mt-6 p-6 border border-white/10 rounded-lg bg-white/[0.02]">
-          <div className="font-mono font-bold text-xl text-white mb-1">分 Pay with Bun</div>
-          <p className="text-sm text-oc-muted mb-2">
-            Hosted checkout · authorize a capped spend for {appName}.
+        <div className="p-8 border border-black/[0.07] rounded-3xl bg-white shadow-sm">
+          <div className="font-geist font-[460] text-2xl tracking-[-0.03em] text-black mb-2">分 Pay with Bun</div>
+          <p className="text-sm text-black/60 mb-2">
+            Hosted checkout &middot; authorize a capped spend for {appName}.
           </p>
-          <p className="text-xs text-oc-muted mb-6">
+          <p className="text-sm text-black/50 mb-8 leading-relaxed">
             Bun verifies your balance privately via ZK, escrows USDC on Stellar, and returns unused cap at settlement. Providers never see your wallet balance.
           </p>
 
-          <div className="space-y-3 text-sm mb-6">
-            <div className="flex justify-between gap-4">
-              <span className="text-oc-muted">Provider</span>
-              <span className="text-white">{providerName}</span>
+          <div className="space-y-4 text-sm mb-8">
+            <div className="flex justify-between gap-4 border-b border-black/[0.04] pb-4">
+              <span className="text-black/50">Provider</span>
+              <span className="text-black font-medium">{providerName}</span>
             </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-oc-muted">Usage price</span>
-              <span className="text-white">{unitPrice} USDC / {unitName}</span>
+            <div className="flex justify-between gap-4 border-b border-black/[0.04] pb-4">
+              <span className="text-black/50">Usage price</span>
+              <span className="text-black font-medium">{unitPrice} USDC / {unitName}</span>
             </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-oc-muted">Old flat subscription</span>
-              <span className="text-white line-through">{flatRate.toFixed(2)} USDC/mo</span>
+            <div className="flex justify-between gap-4 pb-2">
+              <span className="text-black/50">Old flat subscription</span>
+              <span className="text-black/40 line-through font-medium">{flatRate.toFixed(2)} USDC/mo</span>
             </div>
           </div>
 
-          <label className="block text-sm text-oc-muted mb-1">
+          <label className="block text-sm font-medium text-black/70 mb-2">
             Max spend cap (USDC)
           </label>
           <input
@@ -152,35 +133,34 @@ function Checkout() {
             step="0.5"
             value={maxSpend}
             onChange={(event) => setMaxSpend(event.target.value)}
-            className="w-full px-3 py-2 rounded-md text-sm mb-2"
+            className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-black/5"
           />
-          <p className="text-xs text-oc-muted mb-4">
+          <p className="text-xs text-black/50 mb-6">
             This covers roughly {estimatedUnits.toLocaleString()} {unitName}s. The provider cannot charge above this cap.
           </p>
 
           {walletBalance !== null && (
-            <p className={`text-xs mb-4 ${insufficientFunds ? "text-amber-200" : "text-oc-muted"}`}>
-              Wallet balance: {walletBalance.toFixed(2)} USDC
+            <div className={`p-4 rounded-xl mb-6 text-sm border ${insufficientFunds ? "bg-red-50 border-red-100 text-red-800" : "bg-black/5 border-transparent text-black/70"}`}>
+              Wallet balance: <span className="font-medium">{walletBalance.toFixed(2)} USDC</span>
               {insufficientFunds && (
-                <>
-                  {" · "}
-                  <a href="/dashboard" className="underline hover:text-white">
-                    Fund account
+                <div className="mt-2">
+                  <a href="/dashboard" className="text-red-600 underline font-medium">
+                    Fund account to continue
                   </a>
-                </>
+                </div>
               )}
-            </p>
+            </div>
           )}
 
           <button
             onClick={authorize}
             disabled={!canAuthorize}
-            className="w-full px-4 py-3 bg-white text-oc-black rounded-md hover:bg-oc-lightest transition font-medium text-sm disabled:opacity-50"
+            className="w-full px-4 py-4 bg-black text-white rounded-xl hover:bg-black/90 transition font-medium text-sm disabled:opacity-50 shadow-md"
           >
             {loading ? "Authorizing..." : `Authorize ${Number(maxSpend || 0).toFixed(2)} USDC cap`}
           </button>
 
-          {status && <p className="text-sm text-oc-gray mt-3">{status}</p>}
+          {status && <p className="text-sm text-black/60 mt-4 text-center">{status}</p>}
         </div>
       </div>
     </main>
@@ -189,7 +169,7 @@ function Checkout() {
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-oc-black text-oc-muted p-6">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#fafafa] flex items-center justify-center p-6 text-black/50">Loading...</div>}>
       <Checkout />
     </Suspense>
   )

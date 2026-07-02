@@ -91,9 +91,12 @@ function MerchantApp() {
     <main className="min-h-screen bg-[#fafafa] text-black">
       <div className="max-w-5xl mx-auto px-6 py-10">
         <nav className="flex items-center justify-between mb-12">
-          <div className="font-mono font-bold text-black">Sandbox AI</div>
-          <a href="/dashboard" className="text-sm text-black/50 hover:text-black transition">
-            Bun dashboard
+          <div className="font-geist font-[460] text-2xl tracking-[-0.03em] text-black">Sandbox AI</div>
+          <a href="/dashboard" className="text-sm text-black/50 hover:text-black transition flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to Bun
           </a>
         </nav>
 
@@ -132,7 +135,7 @@ function MerchantApp() {
                 </p>
                 <a
                   href={checkoutUrl}
-                  className="block text-center px-4 py-3 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 transition shadow-sm"
+                  className="block text-center px-4 py-4 bg-black text-white rounded-xl font-medium hover:bg-black/90 transition shadow-md"
                 >
                   分 Pay with Bun
                 </a>
