@@ -2,28 +2,23 @@ export default function PrivacyBadge() {
   return (
     <div className="p-4 bg-oc-black border border-white/5 rounded-lg">
       <h3 className="font-semibold text-oc-light mb-2">
-        Privacy Status
+        Privacy &amp; Provider Isolation
       </h3>
       <ul className="space-y-1 text-sm text-oc-lighter">
         <li>
-          <span className="mr-1">&#x2713;</span> Your other
-          subscriptions: hidden from this provider
+          <span className="mr-1">&#x2713;</span> Other subscriptions: hidden from each provider
         </li>
         <li>
-          <span className="mr-1">&#x2713;</span> Your total balance:
-          hidden from agent
+          <span className="mr-1">&#x2713;</span> Wallet balance: not exposed to providers
         </li>
         <li>
-          <span className="mr-1">&#x2713;</span> This usage pattern:
-          visible only to you and this provider
+          <span className="mr-1">&#x2713;</span> Usage trail: scoped to you and the authorized app
         </li>
         <li>
-          <span className="mr-1">&#x2713;</span> Settlement amount:
-          visible only to transaction parties
+          <span className="mr-1">&#x2713;</span> Settlement: enforced by Soroban escrow rules
         </li>
         <li>
-          <span className="mr-1">&#x2713;</span> Sub-transaction
-          privacy enforced by Canton at the protocol level
+          <span className="mr-1">&#x2713;</span> ZK balance proofs: commit-reveal prototype on testnet
         </li>
       </ul>
     </div>

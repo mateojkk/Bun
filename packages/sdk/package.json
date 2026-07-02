@@ -1,0 +1,25 @@
+{
+  "name": "@bun-protocol/sdk",
+  "version": "0.1.0",
+  "description": "Provider SDK for integrating Pay with Bun checkout and usage metering.",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "private": false,
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md",
+    "package.json"
+  ],
+  "keywords": [
+    "bun",
+    "stellar",
+    "soroban",
+    "usage-based-billing",
+    "payments"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,23 +1,18 @@
 "use client"
 
-import { usePrivy } from "@privy-io/react-auth"
 import { useRouter } from "next/navigation"
 
 export default function SignOutButton() {
   const router = useRouter()
-  const { logout } = usePrivy()
 
-  async function handleSignOut() {
-    await fetch("/api/auth/logout", { method: "POST" })
-    await logout()
-    router.push("/")
-    router.refresh()
+  function handleSignOut() {
+    router.push("/logout")
   }
 
   return (
     <button
       onClick={handleSignOut}
-      className="text-oc-gray hover:text-white transition text-xs"
+      className="text-red-500/80 hover:text-red-600 transition font-medium text-xs"
     >
       Sign Out
     </button>

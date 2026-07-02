@@ -173,7 +173,17 @@
               "ext": "v0",
               "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
               "key": {
-                "symbol": "escrow"
+                "vec": [
+                  {
+                    "symbol": "escrow"
+                  },
+                  {
+                    "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
+                  },
+                  {
+                    "symbol": "netflix"
+                  }
+                ]
               },
               "durability": "persistent",
               "val": {

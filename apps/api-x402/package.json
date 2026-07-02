@@ -1,0 +1,20 @@
+{
+  "name": "api-x402",
+  "version": "1.0.0",
+  "description": "Bun x402 API",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "demo": "node client-demo.js",
+    "setup": "node setup.js"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^13.0.0",
+    "@x402/core": "^2.0.0",
+    "@x402/express": "^2.0.0",
+    "@x402/fetch": "^2.0.0",
+    "@x402/stellar": "^2.0.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}

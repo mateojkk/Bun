@@ -3,10 +3,11 @@ import type { NextRequest } from "next/server"
 
 const protectedPaths = [
   "/dashboard",
-  "/account",
   "/subscriptions",
   "/usage",
   "/settlements",
+  "/checkout",
+  "/profile",
 ]
 
 export function proxy(request: NextRequest) {
@@ -32,10 +33,12 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    "/account/:path*",
     "/subscriptions/:path*",
     "/usage/:path*",
     "/settlements/:path*",
+    "/checkout/:path*",
+    "/checkout",
+    "/profile/:path*",
     "/login",
   ],
 }

@@ -1,14 +1,23 @@
 import { execSync } from "child_process"
 
-const CLI = "/tmp/stellar"
+const CLI = "stellar"
 const RPC = process.env.STELLAR_RPC || "https://soroban-testnet.stellar.org"
 const HORIZON = process.env.STELLAR_HORIZON || "https://horizon-testnet.stellar.org"
 const SECRET = process.env.AGENT_SECRET || ""
-// Hardcoded to ignore cached process.env values in dev server without restarting
-export const ESCROW_CONTRACT_ID = "CA2PQ4MJRNZQRJYHYAOSFMYVBZD64HBF2ELRHSZZ5FPP4R2YGK5MKSH5"
+export const ESCROW_CONTRACT_ID = requireEnv("ESCROW_CONTRACT_ID")
+export const ZK_VERIFIER_CONTRACT_ID = requireEnv("ZK_VERIFIER_CONTRACT_ID")
 const ESCROW = ESCROW_CONTRACT_ID
-const ZK = process.env.ZK_VERIFIER_CONTRACT_ID || "CCOBSM6WIWEJWF3PTB5TUUAF22UIE7DZB67F7XO27ARG5FHVWMVRXKXF"
-const USDC_CONTRACT = process.env.USDC_CONTRACT_ID || "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA"
+const ZK = ZK_VERIFIER_CONTRACT_ID
+const USDC_CONTRACT = requireEnv("USDC_CONTRACT_ID")
+
+function requireEnv(key: string): string {
+  const v = process.env[key]
+  if (!v) throw new Error(`Missing required env var: ${key}`)
+  return v
+}
+
+/** Billing cycle duration in seconds; defaults to 900 (15 min) */
+export const CYCLE_SECONDS = Number(process.env.CYCLE_SECONDS || 900)
 
 function cli(args: string): string {
   try {
@@ -22,6 +31,41 @@ function cli(args: string): string {
   }
 }
 
+export async function zkCommitBalance(params: {
+  subscriber: string
+  subscriberSecret: string
+  balanceHashHex: string
+}) {
+  const out = cli(
+    `contract invoke --id ${ZK} --network testnet --source-account ${params.subscriberSecret} -- commit_balance` +
+    ` --subscriber ${params.subscriber}` +
+    ` --balance_hash ${params.balanceHashHex}`
+  )
+  return { ok: out.includes("successfully"), raw: out.slice(0, 200) }
+}
+
+export async function zkVerifyBalance(params: {
+  subscriber: string
+  subscriberSecret: string
+  preimageHex: string
+  requiredMinimumStroops: number | bigint
+}) {
+  const minimum = typeof params.requiredMinimumStroops === "bigint"
+    ? params.requiredMinimumStroops.toString()
+    : String(params.requiredMinimumStroops)
+  const out = cli(
+    `contract invoke --id ${ZK} --network testnet --source-account ${params.subscriberSecret} -- verify` +
+    ` --subscriber ${params.subscriber}` +
+    ` --preimage ${params.preimageHex}` +
+    ` --required_minimum ${minimum}`
+  )
+  const lowered = out.toLowerCase()
+  const ok =
+    lowered.includes("true") ||
+    (out.includes("successfully") && !lowered.includes("false"))
+  return { ok, raw: out.slice(0, 200) }
+}
+
 export async function escrowInit(params: {
   provider: string
   subscriber: string
@@ -32,7 +76,6 @@ export async function escrowInit(params: {
   cycleEnd: number
   serviceName: string
 }) {
-  // Derive agent public key from AGENT_SECRET
   const agentPub = cli(`keys address ${SECRET}`).trim()
 
   const out = cli(
@@ -50,36 +93,55 @@ export async function escrowInit(params: {
   return { ok: out.includes("successfully"), raw: out.slice(0, 200) }
 }
 
-export async function escrowRecordUsage(contractId: string, additional: number) {
+export async function escrowRecordUsage(
+  contractId: string,
+  subscriber: string,
+  serviceName: string,
+  additional: number
+) {
   const out = cli(
-    `contract invoke --id ${contractId || ESCROW} --network testnet --source-account ${SECRET} -- record_usage --additional ${additional}`
+    `contract invoke --id ${contractId || ESCROW} --network testnet --source-account ${SECRET} -- record_usage` +
+    ` --subscriber ${subscriber}` +
+    ` --service_name ${serviceName}` +
+    ` --additional ${additional}`
   )
   return { ok: out.includes("successfully"), raw: out.slice(0, 200) }
 }
 
-export async function escrowSettle(contractId: string) {
+export async function escrowSettle(
+  contractId: string,
+  subscriber: string,
+  serviceName: string
+) {
   const out = cli(
-    `contract invoke --id ${contractId || ESCROW} --network testnet --source-account ${SECRET} -- settle`
+    `contract invoke --id ${contractId || ESCROW} --network testnet --source-account ${SECRET} -- settle` +
+    ` --subscriber ${subscriber}` +
+    ` --service_name ${serviceName}`
   )
   return { ok: out.includes("successfully"), raw: out.slice(0, 200) }
 }
 
-export async function escrowGetData(contractId: string) {
+export async function escrowGetData(
+  contractId: string,
+  subscriber: string,
+  serviceName: string
+) {
   const out = cli(
-    `contract invoke --id ${contractId || ESCROW} --network testnet --source-account ${SECRET} -- get_escrow`
+    `contract invoke --id ${contractId || ESCROW} --network testnet --source-account ${SECRET} -- get_escrow` +
+    ` --subscriber ${subscriber}` +
+    ` --service_name ${serviceName}`
   )
   try {
     return JSON.parse(out)
   } catch {
-    return null
+    return { raw: out.slice(0, 400) }
   }
 }
 
 export async function getBalance(publicKey: string): Promise<string> {
   try {
-    const res = await fetch(`${HORIZON}/accounts/${publicKey}`)
+    const res = await fetch(`${HORIZON}/accounts/${publicKey}`, { cache: "no-store" })
     const data = await res.json()
-    // Look for USDC trustline balance (Circle USDC on testnet)
     const usdc = data.balances?.find(
       (b: any) =>
         b.asset_code === "USDC" &&
@@ -110,7 +172,6 @@ export async function fundTestnet(recipientPublicKey: string, recipientSecret?: 
       "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
     )
 
-    // Step 1: ensure recipient has a USDC trustline; create one if not
     const recipientAccountData = await server.loadAccount(recipientPublicKey)
     const hasTrustline = recipientAccountData.balances.some(
       (b: any) =>
@@ -131,7 +192,6 @@ export async function fundTestnet(recipientPublicKey: string, recipientSecret?: 
       await server.submitTransaction(trustTx)
     }
 
-    // Step 2: send 10 USDC from agent to recipient
     const agentAccount = await server.loadAccount(agentKeypair.publicKey())
     const payTx = new TransactionBuilder(agentAccount, {
       fee: BASE_FEE,

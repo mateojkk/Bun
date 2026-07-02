@@ -24,7 +24,11 @@ pub struct EscrowData {
     pub service_name: Symbol,
 }
 
-const ESCROW_KEY: Symbol = symbol_short!("escrow");
+type EscrowKey = (Symbol, Address, Symbol);
+
+fn escrow_key(subscriber: &Address, service_name: &Symbol) -> EscrowKey {
+    (symbol_short!("escrow"), subscriber.clone(), service_name.clone())
+}
 
 #[contract]
 pub struct EscrowContract;
@@ -43,16 +47,16 @@ impl EscrowContract {
         cycle_end: u64,
         service_name: Symbol,
     ) {
-        assert!(!env.storage().persistent().has(&ESCROW_KEY));
+        let key = escrow_key(&subscriber, &service_name);
+        assert!(!env.storage().persistent().has(&key));
 
-        // Transfer the escrowed amount from subscriber to this contract
         subscriber.require_auth();
         let token_client = token::Client::new(&env, &token_contract);
         token_client.transfer(&subscriber, &env.current_contract_address(), &amount);
 
         let escrow = EscrowData {
             provider,
-            subscriber,
+            subscriber: subscriber.clone(),
             agent,
             token_contract,
             amount,
@@ -61,42 +65,43 @@ impl EscrowContract {
             flat_rate,
             cycle_end,
             status: Status::Active,
-            service_name,
+            service_name: service_name.clone(),
         };
 
-        env.storage().persistent().set(&ESCROW_KEY, &escrow);
+        env.storage().persistent().set(&key, &escrow);
     }
 
-    pub fn record_usage(env: Env, additional: i128) {
-        let mut escrow: EscrowData = env
-            .storage()
-            .persistent()
-            .get(&ESCROW_KEY)
-            .unwrap();
+    pub fn record_usage(env: Env, subscriber: Address, service_name: Symbol, additional: i128) {
+        let key = escrow_key(&subscriber, &service_name);
+        let mut escrow: EscrowData = env.storage().persistent().get(&key).unwrap();
         assert_eq!(escrow.status, Status::Active);
         assert!(additional >= 0);
 
+        // Require the agent or provider to authorize the usage metering
+        escrow.agent.require_auth();
+
         escrow.usage += additional;
-        env.storage().persistent().set(&ESCROW_KEY, &escrow);
+        env.storage().persistent().set(&key, &escrow);
     }
 
-    pub fn settle(env: Env) {
-        let mut escrow: EscrowData = env
-            .storage()
-            .persistent()
-            .get(&ESCROW_KEY)
-            .unwrap();
+    pub fn settle(env: Env, subscriber: Address, service_name: Symbol) {
+        let key = escrow_key(&subscriber, &service_name);
+        let mut escrow: EscrowData = env.storage().persistent().get(&key).unwrap();
         assert_eq!(escrow.status, Status::Active);
 
+        // Require the Bun agent to trigger the settlement
+        escrow.agent.require_auth();
+
+        let used_amount = ((escrow.usage * escrow.unit_price) + escrow.flat_rate).min(escrow.amount);
+        let is_exhausted = used_amount >= escrow.amount;
+
         assert!(
-            env.ledger().timestamp() >= escrow.cycle_end,
-            "cycle not yet ended"
+            env.ledger().timestamp() >= escrow.cycle_end || is_exhausted,
+            "cycle not yet ended and funds not exhausted"
         );
 
-        let used_amount = (escrow.usage * escrow.unit_price).min(escrow.amount);
         let refund_amount = escrow.amount - used_amount;
 
-        // Transfer used amount to provider
         let token_client = token::Client::new(&env, &escrow.token_contract);
         if used_amount > 0 {
             token_client.transfer(
@@ -105,7 +110,6 @@ impl EscrowContract {
                 &used_amount,
             );
         }
-        // Return unused amount to subscriber
         if refund_amount > 0 {
             token_client.transfer(
                 &env.current_contract_address(),
@@ -115,11 +119,12 @@ impl EscrowContract {
         }
 
         escrow.status = Status::Settled;
-        env.storage().persistent().set(&ESCROW_KEY, &escrow);
+        env.storage().persistent().set(&key, &escrow);
     }
 
-    pub fn get_escrow(env: Env) -> EscrowData {
-        env.storage().persistent().get(&ESCROW_KEY).unwrap()
+    pub fn get_escrow(env: Env, subscriber: Address, service_name: Symbol) -> EscrowData {
+        let key = escrow_key(&subscriber, &service_name);
+        env.storage().persistent().get(&key).unwrap()
     }
 }
 

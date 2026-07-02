@@ -12,13 +12,13 @@ export default function CopyAddress({ address }: { address: string }) {
   }
 
   return (
-    <div className="flex items-center gap-2 mt-4 p-3 bg-white/5 border border-white/5 rounded-lg">
-      <div className="flex-1 truncate text-sm text-oc-gray font-mono">
+    <div className="flex items-center gap-2 mt-4 p-3 bg-black/5 border border-black/5 rounded-xl">
+      <div className="flex-1 truncate text-sm text-black/60 font-mono">
         {address}
       </div>
       <button
         onClick={handleCopy}
-        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-xs transition whitespace-nowrap"
+        className="px-4 py-2 bg-white hover:bg-neutral-50 text-black border border-black/10 rounded-lg text-xs font-medium transition whitespace-nowrap shadow-sm"
       >
         {copied ? "Copied!" : "Copy Address"}
       </button>

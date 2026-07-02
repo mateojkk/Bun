@@ -1,56 +1,74 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node"
+import { Buffer } from "node:buffer"
+import type { ApiRequest, JsonResponse } from "../types"
 import {
-  SorobanRpc,
+  rpc,
   Contract,
   Keypair,
   TransactionBuilder,
   BASE_FEE,
   Networks,
+  nativeToScVal,
 } from "@stellar/stellar-sdk"
 
-const rpc = new SorobanRpc.Server(
+const server = new rpc.Server(
   process.env.STELLAR_RPC || "https://soroban-testnet.stellar.org"
 )
 
 export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
+  req: ApiRequest<{
+    subscriberSecret?: string
+    escrowContractId?: string
+    zkVerifierContractId?: string
+    preimageHex?: string
+    requiredMinimumStroops?: string
+  }>,
+  res: JsonResponse
 ) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST only" })
   }
 
-  const { subscriberSecret, escrowContractId, zkVerifierContractId } =
-    req.body
+  const {
+    subscriberSecret,
+    escrowContractId,
+    zkVerifierContractId,
+    preimageHex,
+    requiredMinimumStroops,
+  } = req.body
+
+  if (!subscriberSecret || !escrowContractId || !zkVerifierContractId) {
+    return res.status(400).json({
+      error: "subscriberSecret, escrowContractId, and zkVerifierContractId required",
+    })
+  }
 
   try {
     const keypair = Keypair.fromSecret(subscriberSecret)
-    const source = await rpc.getAccount(keypair.publicKey())
+    const source = await server.getAccount(keypair.publicKey())
 
     const escrow = new Contract(escrowContractId)
     const zk = new Contract(zkVerifierContractId)
 
-    const tx = new TransactionBuilder(source, {
+    const txBuilder = new TransactionBuilder(source, {
       fee: BASE_FEE,
       networkPassphrase: Networks.TESTNET,
-    })
-      .addOperation(escrow.call("settle"))
-      .addOperation(
+    }).addOperation(escrow.call("settle"))
+
+    if (preimageHex && requiredMinimumStroops) {
+      txBuilder.addOperation(
         zk.call(
-          "verify_balance",
-          keypair.publicKey(),
-          "1000000",
-          Buffer.from("salt").toString("hex"),
-          "500000"
+          "verify",
+          nativeToScVal(Buffer.from(preimageHex, "hex")),
+          nativeToScVal(requiredMinimumStroops)
         )
       )
-      .setTimeout(30)
-      .build()
+    }
 
-    const prepared = await rpc.prepareTransaction(tx)
+    const tx = txBuilder.setTimeout(30).build()
+    const prepared = await server.prepareTransaction(tx)
     prepared.sign(keypair)
 
-    const result = await rpc.sendTransaction(prepared)
+    const result = await server.sendTransaction(prepared)
 
     res.status(200).json({
       status: "settled",

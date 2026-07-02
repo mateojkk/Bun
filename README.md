@@ -1,111 +1,248 @@
-# Bun: Pay Only for What You Use
+# Bun: Pay with Usage Credits
 
-> A privacy-preserving, usage-based payment protocol built on Stellar Soroban.
+> Bun is usage-based subscription infrastructure for teams. Providers add **Pay with Bun**, customers authorize a capped spend, providers report usage through an API/SDK, and Bun handles escrow, crediting, settlement, and refunds.
 
-**Pre-Launch - Stellar Testnet · Seeking Mainnet Funding**
+**Pre-launch on Stellar Testnet**
 
 ---
 
-## The Problem
+## The Pitch
 
-Every month, you pay $15.99 for Netflix, $20 for Claude, $11.99 for Spotify - regardless of whether you used them twice or every day. The subscription economy charges you for access, not usage. And every provider learns your consumption patterns.
+Subscriptions are broken for both sides.
 
-**Bun fixes both.** You pay only for what you actually consume. And your data stays fragmented across providers - enforced cryptographically, not by policy.
+Customers pay flat monthly fees even when they barely use a product. Providers either leave money on the table with generous flat plans or risk customer distrust with opaque usage billing. Bun gives both sides a cleaner contract:
+
+- Customers approve a hard spending cap before using a service.
+- Providers get guaranteed payment for metered usage.
+- Unused funds stay with, or return to, the customer.
+- Usage billing becomes a checkout/API integration instead of a custom billing system every team has to build from scratch.
+
+Think **Stripe Checkout for usage-based subscriptions**, backed by Stellar Soroban escrow.
+
+## What Bun Is
+
+Bun is not a marketplace and does not provide the services itself.
+
+Bun is the payment rail:
+
+1. A provider integrates a **Pay with Bun** button or SDK.
+2. A customer signs in and authorizes a maximum spend.
+3. Bun creates a subscription/authorization record and attempts Soroban escrow.
+4. The provider tracks usage inside its own app.
+5. The provider reports metered usage to Bun.
+6. Bun shows the customer usage, remaining cap, provider payout, and settlement state.
+
+## Why Now
+
+AI tools, API platforms, compute products, and creator apps are all moving toward usage-based pricing. But metered billing is painful to implement and easy to make unfair.
+
+Bun turns usage billing into an integration layer:
+
+- **For providers:** no need to build billing caps, usage ledgers, settlement logic, or refund accounting from scratch.
+- **For customers:** every app gets a visible cap, usage trail, and unused-balance story.
+- **For the protocol:** escrow and settlement can be enforced on-chain instead of by platform policy.
+
+## Demo Flow
+
+The testnet build includes a neutral merchant fixture called **Sandbox AI**. It is not a real product; it is a reference merchant showing how any provider would integrate Bun.
+
+```
+1. Visit /
+2. Launch the Bun app
+3. Sign in with Privy email OTP
+4. Request faucet funds on /account
+5. Open /merchant/sandbox
+6. Click "Pay with Bun"
+7. Authorize a capped spend in hosted checkout
+8. Return to Sandbox AI
+9. Click a provider-side usage action such as "Code review"
+10. View the resulting subscription, usage, and settlement records in Bun
+```
+
+In a real integration, the customer would not manually type or report usage. The provider app tracks usage internally and calls Bun’s usage API.
+
+## What Is Real vs Fixture
+
+| Area | Status |
+|------|--------|
+| Privy login | Real email OTP auth |
+| Bun session | Real httpOnly app session |
+| Faucet flow | Implemented testnet funding request |
+| Hosted checkout | Real `/checkout` authorization UI |
+| Provider API | Real `POST /api/bun/v1/usage` endpoint |
+| Subscriptions dashboard | Real persisted records in MongoDB |
+| Usage dashboard | Real persisted usage events |
+| Settlement dashboard | Real payout/refund accounting view |
+| Sandbox AI merchant | Fixture/reference app |
+| Sandbox AI usage engine | Simulated provider-side actions |
+| Soroban escrow | Contract path implemented; live success depends on testnet env, funding, deployed contract, and `/tmp/stellar` config |
+| ZK verifier | SHA256 commit-reveal prototype |
+
+## Integration Surface
+
+Provider-facing routes:
+
+- `/checkout` - hosted Pay with Bun authorization page
+- `/docs` - integration docs
+- `/merchant/sandbox` - reference merchant fixture
+
+Provider-facing API:
+
+- `POST /api/bun/v1/authorizations` - create a customer authorization and subscription record
+- `POST /api/bun/v1/usage` - record metered usage against a subscription
+- `GET /api/bun/v1/subscriptions` - list the authenticated customer’s subscriptions
+
+## SDK Integration
+
+During testnet development, teams can install the SDK directly from this repo into another app:
+
+```bash
+npm install ../Bun/packages/sdk
+```
+
+Once published, the intended install path is:
+
+```bash
+npm install @bun-protocol/sdk
+```
+
+### Register a provider API key
+
+Bun admins issue provider keys out-of-band. The provider stores the raw key server-side. Bun stores only a SHA256 hash and callback allowlist in `BUN_PROVIDERS`.
+
+Example:
+
+```json
+[
+  {
+    "id": "acme-ai",
+    "name": "Acme AI",
+    "apiKeyHash": "sha256-hash-of-provider-key",
+    "allowedCallbackUrls": ["https://acme.example/bun/callback"]
+  }
+]
+```
+
+Create a provider client:
+
+```ts
+import { BunProviderClient } from "@bun-protocol/sdk"
+
+const bun = new BunProviderClient({
+  baseUrl: process.env.BUN_BASE_URL!,
+  apiKey: process.env.BUN_PROVIDER_API_KEY,
+})
+```
+
+Send the customer to Bun Checkout:
+
+```ts
+const checkout = bun.checkoutUrl({
+  providerId: "your-provider-id",
+  appName: "Your App",
+  providerName: "Your Team",
+  unitName: "token",
+  unitPrice: "0.002",
+  maxSpend: "5",
+  callbackUrl: "https://provider.example/bun/callback",
+})
+
+window.location.href = checkout.toString()
+```
+
+After checkout, the provider stores the returned `bun_subscription_id` and reports usage:
+
+```ts
+await bun.recordUsage({
+  subscriptionId: customer.bunSubscriptionId,
+  providerId: "your-provider-id",
+  quantity: 420,
+  idempotencyKey: "usage-event-123",
+})
+```
+
+The customer never reports usage manually. Your app tracks product usage internally and reports metered events from your backend.
 
 ## How It Works
 
 ```
-     ┌──────────┐       ┌──────────┐       ┌──────────┐
-     │  Top Up  │  ───► │Subscribe │  ───► │   Use    │
-     │ Bun Acct │       │ (escrow) │       │ (track)  │
-     └──────────┘       └──────────┘       └──────────┘
-                                               │
-                                          ┌────▼────┐
-                                          │  Settle  │
-                                          │ (agent)  │
-                                          └──────────┘
+ Provider app       Bun             Stellar/Soroban
+ ┌───────────┐   ┌───────────┐      ┌──────────────┐
+ │ Pay with  │──►│ Authorize │─────►│ Escrow cap   │
+ │ Bun button│   │ max spend │      │ on Soroban   │
+ └───────────┘   └─────┬─────┘      └──────────────┘
+                       │
+ Provider SDK/API ─────▼─────► Record usage ──► Settle credits
 ```
-
-1. **Top up** your Bun account with USDC
-2. **Subscribe** to a service - your max spend is locked in an escrow contract
-3. **Use** the service - the provider reports your usage
-4. **Auto-settle** - an agent settles payments at cycle end. Used funds go to the provider, unused funds return to you.
 
 ## Anti-Scam by Design
 
-| Concern | How Bun Handles It |
-|---------|--------------------|
-| Subscriber uses service then refuses to pay | Funds already escrowed at subscription time |
-| Provider overcharges | Capped at `maxSpend` set by subscriber |
-| Agent steals funds | Agent can only call `settle()` - never access escrow |
-| Provider sees subscriber's other services | Canton-grade privacy via ZK on Stellar |
-| Subscriber under-reports usage | Provider (or oracle) controls `RecordUsage` |
+| Concern | Bun’s answer |
+|---------|--------------|
+| Customer uses a service then refuses to pay | Funds are escrowed or authorized before usage begins |
+| Provider overcharges | Customer-approved `maxSpend` caps liability |
+| Provider sees the customer’s other services | Provider only sees its own authorization and usage scope |
+| Agent steals funds | Agent can only trigger settlement, not arbitrarily move escrow |
+| Usage is under-reported | Provider owns metering and reports usage events |
 
-**Funds are locked in a Soroban escrow contract before usage begins.** Settlement is automatic - no approval step, no dispute, no scam.
+## Privacy
 
-## Privacy via ZK (BLS12-381)
+The current ZK verifier is a SHA256 commit-reveal prototype:
 
-Stellar is a public ledger. Privacy comes from cryptographic commitments:
+1. Customer commits `sha256(balance + salt)`.
+2. At verification time, the preimage can prove the committed balance meets a required minimum.
+3. This keeps the demo simple while preserving the direction toward private balance checks.
 
-1. Subscriber commits `sha256(balance + salt)` to the ZK Verifier contract
-2. Provider sees only the escrow amount - never the subscriber's total balance
-3. At settlement, the subscriber reveals the preimage; the contract verifies `balance ≥ required`
-4. Provider receives payment but never learns the subscriber's full financial picture
-
-All verification runs natively on Soroban using BLS12-381 curves. No external prover needed.
+Future privacy work can upgrade this to stronger ZK proofs if Bun needs private cross-provider balances at production scale.
 
 ## Tech Stack
 
 | Layer | Tech | Purpose |
 |-------|------|---------|
-| Smart Contracts | **Soroban** (Rust + WASM) | Escrow, ZK Verifier |
-| Frontend | Next.js 16 (Turbopack) + Tailwind | Dashboard, subscriptions, settlements |
-| Auth | Privy (email OTP) | Passwordless sign-in |
-| Agent | Vercel serverless (TypeScript) | Auto-settlement at cycle end |
-| Database | MongoDB Atlas | User identity mapping |
-| Network | Stellar Testnet | 5-second finality |
+| Smart contracts | Soroban, Rust, WASM | Escrow, usage, settlement, ZK verifier |
+| Frontend | Next.js 16 App Router, Tailwind | Checkout, dashboards, docs, merchant fixture |
+| SDK | `packages/sdk` TypeScript client | Checkout URL builder, provider usage calls |
+| Auth | Privy email OTP + httpOnly Bun cookies | Customer identity and protected app session |
+| Database | MongoDB Atlas | Accounts, subscriptions, usage events |
+| Agent | Vercel serverless TypeScript | Settlement trigger |
+| Network | Stellar Testnet | Testnet escrow and settlement |
 
 ## Smart Contracts
 
 | Contract | Testnet Address | Purpose |
 |----------|----------------|---------|
-| `EscrowContract` | `CCCYTFPBLSIM23DM3W5V6Q6RKFUBNTYKD3SZO22565NAMR54XYVRZK6F` | Holds escrow, tracks usage, settles payments |
-| `ZkVerifierContract` | `CCOBSM6WIWEJWF3PTB5TUUAF22UIE7DZB67F7XO27ARG5FHVWMVRXKXF` | BLS12-381 commit-reveal balance verification |
+| `EscrowContract` | `CCCYTFPBLSIM23DM3W5V6Q6RKFUBNTYKD3SZO22565NAMR54XYVRZK6F` | Holds escrow data, tracks usage, settles payments |
+| `ZkVerifierContract` | `CCOBSM6WIWEJWF3PTB5TUUAF22UIE7DZB67F7XO27ARG5FHVWMVRXKXF` | SHA256 commit-reveal balance verification |
 
-**Escrow Contract API:**
-- `init(provider, subscriber, agent, amount, unit_price, flat_rate, cycle_end, service_name)` - create escrow
-- `record_usage(additional)` - provider reports usage
-- `settle()` - agent settles at cycle end
-- `get_escrow()` - read escrow state
+Escrow API:
 
-**ZK Verifier API:**
-- `commit_balance(subscriber, balance_hash)` - subscriber commits to balance
-- `verify(preimage, required_minimum)` - verifies preimage + minimum balance
+- `init(provider, subscriber, agent, amount, unit_price, flat_rate, cycle_end, service_name)`
+- `record_usage(additional)`
+- `settle()`
+- `get_escrow()`
 
-## Demo Flow
+ZK verifier API:
 
-```
-1. Visit / → landing page
-2. Click "Launch App" → sign in with email (Privy OTP)
-3. First login: choose username → BunAccount created on Stellar
-4. Dashboard: see balance (0 USDC)
-5. Account page: Top Up with testnet USDC
-6. Browse Services → Subscribe (funds escrowed)
-7. Record Usage (provider reports consumption)
-8. Agent auto-settles at cycle end
-9. Settlements page: view payment history
-10. Unused escrow automatically returned
-```
+- `commit_balance(subscriber, balance_hash)`
+- `verify(preimage, required_minimum)`
 
 ## Why Bun Wins
 
-- Bun solves a **real economic problem**: the subscription economy charges consumers for access, not usage.
-- The protocol is **anti-scam by design**: escrow is enforced on-chain by Soroban, not by policy or trust.
-- **Privacy is preserved on a public ledger** through ZK balance commitments natively on Soroban.
-- Settlement is **fully automated**: the agent handles cycle-end payments with zero manual intervention.
-- The UX is **production-ready**: dark mode, responsive design, passwordless auth, with no blockchain complexity exposed to users.
-- Transactions confirm in **under 5 seconds** on Stellar.
-- The architecture is **mainnet-ready**: built to production specifications, currently running on testnet for staged rollout.
+- **Clear buyer pain:** flat subscriptions charge for access instead of actual use.
+- **Clear provider value:** teams can add usage billing without rebuilding caps, ledgers, and settlement.
+- **Trust by construction:** customer caps and escrow reduce billing disputes.
+- **Composable distribution:** any app can integrate Bun as a payment method.
+- **Strong demo path:** the Sandbox AI fixture proves the exact integration loop end to end.
+- **Crypto with purpose:** Stellar is used for escrow/settlement guarantees, not as decoration.
+
+## Future Goals
+
+- Publish a provider SDK for `createAuthorization`, `recordUsage`, `settle`, and webhook verification.
+- Add hosted provider dashboards, API keys, webhooks, rate limits, and audit logs.
+- Complete live USDC escrow transfers and end-to-end settlement hardening.
+- Add stronger production-grade privacy proofs.
+- Support real provider onboarding beyond the Sandbox AI fixture.
+- Add provider-side usage adapters for AI tokens, API calls, compute minutes, streams, and jobs.
 
 ## Getting Started
 
@@ -118,16 +255,17 @@ stellar contract deploy --wasm escrow.wasm --network testnet
 # Frontend
 cd apps/web
 npm install
-cp ../.env.example ../.env.local  # fill in env vars
 npm run dev
 ```
+
+Configure the environment variables below for the full testnet flow.
 
 ## Environment Variables
 
 ```
 STELLAR_RPC=https://soroban-testnet.stellar.org
 STELLAR_HORIZON=https://horizon-testnet.stellar.org
-AGENT_SECRET=            # Stellar secret key
+AGENT_SECRET=             # Stellar secret key
 NEXT_PUBLIC_PRIVY_APP_ID= # Privy App ID
 PRIVY_APP_SECRET=         # Privy App Secret
 PRIVY_JWKS_URL=           # Privy JWKS URL for token verification
@@ -135,17 +273,20 @@ MONGODB_URI=              # MongoDB connection
 ESCROW_CONTRACT_ID=       # Deployed escrow contract
 ZK_VERIFIER_CONTRACT_ID=  # Deployed ZK verifier contract
 USDC_CONTRACT_ID=         # Circle USDC Token Contract
+BUN_PROVIDER_API_KEY=     # Optional provider metering API key
+BUN_PROVIDERS=            # JSON provider registry with API key hashes and callback allowlists
 ```
 
 ## Architecture
 
 ```
-apps/web/          - Next.js 16 frontend (App Router, Turbopack)
-api/               - Vercel serverless functions (agent, ZK proofs, Stellar RPC)
-contracts/         - Soroban smart contracts (Rust + WASM)
-packages/shared/   - TypeScript types
+apps/web/          - Next.js frontend, checkout, dashboards, docs
+api/               - Vercel serverless functions, agent, ZK helpers
+contracts/         - Soroban smart contracts
+packages/sdk/      - Provider TypeScript SDK
+packages/shared/   - Shared TypeScript types
 ```
 
 ---
 
-Built on Stellar Soroban. Pre-launch testnet phase - June 2026. Seeking mainnet funding.
+Built on Stellar Soroban. Pre-launch testnet phase - June 2026.

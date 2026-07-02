@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/bun/v1/cron/settle",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}

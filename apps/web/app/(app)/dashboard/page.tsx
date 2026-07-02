@@ -1,7 +1,10 @@
 import { getPartyId, getDisplayName } from "@/lib/auth"
 import { getBalance } from "@/lib/stellar"
+import { listSubscriptionsBySubscriber, findAccountByPartyId } from "@/lib/db"
 import { redirect } from "next/navigation"
-import PrivacyBadge from "@/components/PrivacyBadge"
+import TopUpForm from "@/components/TopUpForm"
+import ZkCommitForm from "@/components/ZkCommitForm"
+import CopyAddress from "@/components/CopyAddress"
 
 export default async function Dashboard() {
   const partyId = await getPartyId()
@@ -9,44 +12,88 @@ export default async function Dashboard() {
 
   const name = await getDisplayName()
   const balance = await getBalance(partyId).catch(() => "0")
+  const subscriptions = await listSubscriptionsBySubscriber(partyId).catch(() => [])
+  
+  const active = subscriptions.filter((sub) => sub.status === "active")
+  const used = subscriptions.reduce((sum, sub) => sum + sub.usedAmount, 0)
+  const remaining = subscriptions.reduce((sum, sub) => sum + sub.remainingAmount, 0)
+
+  const account = await findAccountByPartyId(partyId)
+  const walletBalance = Number(balance)
+  const committedUsdc = account?.zkBalanceStroops
+    ? Number(account.zkBalanceStroops) / 10_000_000
+    : 0
+  const committed = account?.zkChainStatus === "confirmed"
+  const stale = committed && walletBalance > committedUsdc + 0.000001
+
+
 
   return (
-    <div className="px-4 sm:px-6 py-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="px-4 sm:px-6 py-12 max-w-[1400px] mx-auto space-y-10">
+      {/* Header section */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6 pb-4 border-b border-black/[0.05]">
         <div>
-          <h1 className="text-3xl font-bold text-white">分 Bun</h1>
-          <p className="text-oc-muted">Pay only for what you use</p>
-          {name && <p className="text-oc-gray text-sm mt-1">Welcome back, {name}</p>}
+          <div className="text-xs text-black/40 uppercase tracking-widest font-mono mb-3">Network Overview</div>
+          <h1 className="text-[clamp(2rem,4vw,2.5rem)] font-geist font-[460] tracking-[-0.03em] text-black leading-none">
+            {name ? `Welcome back, ${name}.` : "Dashboard."}
+          </h1>
         </div>
-        <div className="text-right">
-          <div className="text-sm text-oc-muted">Balance</div>
-          <div className="text-2xl font-bold text-oc-lighter">
-            {Number(balance).toFixed(2)} USDC
+        <div className="flex flex-col sm:items-end">
+          <div className="text-xs text-black/40 uppercase tracking-widest font-mono mb-2">Wallet Balance</div>
+          <div className="text-4xl font-geist font-[440] text-black tracking-tight flex items-baseline">
+            <span className="text-2xl text-black/30 font-light mr-1">$</span>{walletBalance.toFixed(2)}
           </div>
         </div>
       </div>
 
-      <div className="grid gap-4 mb-8">
-        <div className="p-5 border border-white/5 rounded-lg bg-white/[0.02]">
-          <h2 className="text-lg font-semibold text-white mb-2">Get Started</h2>
-          <ol className="text-sm text-oc-gray space-y-1 mb-4">
-            <li>1. Fund your account on the <b>Account</b> page with testnet USDC</li>
-            <li>2. Browse <b>Services</b> and subscribe to one</li>
-            <li>3. Record usage on the <b>Usage</b> page</li>
-            <li>4. Settlement happens automatically at cycle end</li>
-          </ol>
-          <div className="flex gap-3">
-            <a href="/account" className="px-4 py-2 bg-white text-oc-black rounded-md hover:bg-oc-lightest transition font-medium text-sm">
-              Fund Account
-            </a>
-            <a href="/subscriptions" className="px-4 py-2 border border-white/10 text-white rounded-md hover:bg-white/5 transition text-sm">
-              Browse Services
-            </a>
+      {/* Primary Stats Grid */}
+      <div className="grid sm:grid-cols-3 gap-5">
+        <div className="p-8 rounded-3xl border border-black/[0.07] bg-white shadow-sm transition-shadow hover:shadow-md">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-2 h-2 rounded-full bg-blue-500" />
+            <div className="text-sm text-black/50 font-medium">Active Apps</div>
+          </div>
+          <div className="text-4xl font-geist font-[440] text-black tracking-tight">{active.length}</div>
+        </div>
+        <div className="p-8 rounded-3xl border border-black/[0.07] bg-white shadow-sm transition-shadow hover:shadow-md">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-2 h-2 rounded-full bg-amber-500" />
+            <div className="text-sm text-black/50 font-medium">Used Credits</div>
+          </div>
+          <div className="flex items-baseline">
+            <div className="text-xl font-geist text-black/30 mr-1">$</div>
+            <div className="text-4xl font-geist font-[440] text-black tracking-tight">{used.toFixed(2)}</div>
+          </div>
+        </div>
+        <div className="p-8 rounded-3xl border border-black/[0.07] bg-white shadow-sm transition-shadow hover:shadow-md">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-2 h-2 rounded-full bg-[#3de23d]" />
+            <div className="text-sm text-black/50 font-medium">Remaining Caps</div>
+          </div>
+          <div className="flex items-baseline">
+            <div className="text-xl font-geist text-black/30 mr-1">$</div>
+            <div className="text-4xl font-geist font-[440] text-black tracking-tight">{remaining.toFixed(2)}</div>
           </div>
         </div>
       </div>
 
-      <PrivacyBadge />
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="p-8 rounded-3xl border border-black/[0.07] bg-white shadow-sm">
+          <div className="flex items-center gap-2 mb-8">
+            <div className="w-2 h-2 rounded-full bg-[#3de23d]" />
+            <h2 className="text-lg font-[500] text-black tracking-tight">Fund Subscriptions</h2>
+          </div>
+          <TopUpForm publicKey={partyId} balance={balance} />
+        </div>
+      </div>
+
+      <div className="pt-4">
+        <ZkCommitForm
+          initialCommitted={committed}
+          initialStale={stale}
+          initialCommittedUsdc={committedUsdc}
+        />
+      </div>
     </div>
   )
 }

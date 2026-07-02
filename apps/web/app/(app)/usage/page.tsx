@@ -1,67 +1,58 @@
-"use client"
+import { getPartyId } from "@/lib/auth"
+import { listSubscriptionsBySubscriber, listUsageEventsBySubscriber } from "@/lib/db"
+import { redirect } from "next/navigation"
 
-import { useState } from "react"
+export default async function UsagePage() {
+  const partyId = await getPartyId()
+  if (!partyId) redirect("/login")
 
-export default function UsagePage() {
-  const [contractId, setContractId] = useState("")
-  const [usage, setUsage] = useState("")
-  const [status, setStatus] = useState("")
-  const [loading, setLoading] = useState(false)
-
-  async function handleRecord() {
-    if (!contractId || !usage) return
-    setLoading(true)
-    setStatus("Recording usage on-chain...")
-    try {
-      const res = await fetch("/api/stellar/usage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contractId,
-          additional: Number(usage),
-        }),
-      })
-      const data = await res.json()
-      if (data.ok) {
-        setStatus(`Usage recorded on-chain. Tx: ${data.hash?.slice(0, 16)}...`)
-      } else {
-        setStatus(`Error: ${data.error || JSON.stringify(data)}`)
-      }
-    } catch (e: any) {
-      setStatus(`Error: ${e.message}`)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [subscriptions, events] = await Promise.all([
+    listSubscriptionsBySubscriber(partyId).catch(() => []),
+    listUsageEventsBySubscriber(partyId).catch(() => []),
+  ])
 
   return (
-    <div className="px-4 sm:px-6 py-6">
-      <h1 className="text-2xl font-bold mb-2 text-white">Record Usage</h1>
-      <p className="text-oc-muted text-sm mb-6">
-        Usage is reported by the service provider via a Soroban transaction.
-      </p>
-
-      <div className="max-w-md space-y-4">
-        <div>
-          <label className="block text-sm text-oc-muted mb-1">Escrow Contract ID</label>
-          <input className="w-full px-3 py-2 rounded-md text-sm" placeholder="CCC..."
-            value={contractId} onChange={(e) => setContractId(e.target.value)} />
-        </div>
-
-        <div>
-          <label className="block text-sm text-oc-muted mb-1">Usage Amount (units)</label>
-          <input type="number" min="0" className="w-full px-3 py-2 rounded-md text-sm"
-            placeholder="12" value={usage} onChange={(e) => setUsage(e.target.value)} />
-        </div>
-
-        <button onClick={handleRecord}
-          disabled={loading}
-          className="px-4 py-2 bg-white text-oc-black rounded-md hover:bg-oc-lightest transition font-medium text-sm disabled:opacity-50">
-          {loading ? "Broadcasting..." : "Record Usage"}
-        </button>
-
-        {status && <p className="text-sm text-oc-gray bg-white/5 rounded p-2">{status}</p>}
+    <div className="px-4 sm:px-6 py-6 max-w-[1400px] mx-auto space-y-6">
+      <div>
+        <h1 className="text-3xl font-geist text-black tracking-tight">Usage History</h1>
+        <p className="text-black/50 text-sm mt-2">
+          A log of metered events reported by your integrated applications.
+        </p>
       </div>
+
+      <section>
+        <h2 className="text-lg font-geist text-black mb-3">Recent Events</h2>
+        {events.length === 0 ? (
+          <div className="p-8 text-center text-black/40 border-2 border-dashed border-black/10 rounded-2xl">
+            No usage has been reported yet.
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {events.map((event) => {
+              const sub = subscriptions.find((item) => item.id === event.subscriptionId)
+              return (
+                <div key={event.id} className="p-5 border border-black/10 rounded-2xl bg-white shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="flex items-start sm:items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      <div>
+                        <div className="font-medium text-black">{sub?.appName || "Unknown app"}</div>
+                        <div className="text-xs text-black/40 font-mono mt-1 break-all">{event.subscriptionId}</div>
+                      </div>
+                    </div>
+                    <div className="text-left sm:text-right mt-1 sm:mt-0 pl-5 sm:pl-0">
+                      <div className="text-sm font-medium text-black">{event.amount.toFixed(2)} USDC</div>
+                      <div className="text-xs text-black/50 mt-1">
+                        {event.quantity} {sub?.unitName || "units"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
     </div>
   )
 }

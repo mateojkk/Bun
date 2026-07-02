@@ -1,4 +1,5 @@
 import { cookies } from "next/headers"
+import { findAccountByPartyId } from "./db"
 
 const PARTY_COOKIE = "bun_party"
 const NAME_COOKIE = "bun_name"
@@ -11,6 +12,13 @@ export async function getPartyId(): Promise<string | null> {
 export async function getDisplayName(): Promise<string | null> {
   const c = await cookies()
   return c.get(NAME_COOKIE)?.value || null
+}
+
+export async function getAvatarUrl(): Promise<string | null> {
+  const partyId = await getPartyId()
+  if (!partyId) return null
+  const account = await findAccountByPartyId(partyId)
+  return account?.avatarUrl || null
 }
 
 export async function setAuth(partyId: string, displayName: string) {

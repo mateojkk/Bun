@@ -1,302 +1,299 @@
 import Link from "next/link"
+import Image from "next/image"
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-oc-black">
-      {/* Header */}
-      <header className="border-b border-white/5 sticky top-0 bg-oc-black/90 backdrop-blur z-10">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <span className="font-mono font-bold text-white">分 Bun</span>
-          <div className="flex items-center gap-6 text-sm text-oc-gray">
-            <a href="/dashboard" className="hover:text-white transition">Launch App</a>
-          </div>
-        </div>
-      </header>
+    <main className="bg-white font-sans antialiased">
 
-      {/* Hero */}
-      <section className="px-6 pt-24 pb-16">
-        <div className="max-w-2xl">
-          <h1 className="text-5xl font-bold tracking-tight leading-tight mb-6 text-white">
-            Pay only for<br />what you use.
-          </h1>
-          <p className="text-lg text-oc-gray leading-relaxed mb-8 max-w-xl">
-            Bun is a privacy-first subscription platform built on Stellar.
-            Your usage data stays fragmented no single party, not even us, sees
-            your full consumption graph.
-          </p>
-          <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="px-6 py-3 bg-white text-oc-black rounded-md hover:bg-oc-lightest transition font-medium text-sm">
-              Get Started
+      {/* ══════════════════════════════════════════
+          HERO — Full bleed cinematic background
+      ══════════════════════════════════════════ */}
+      <section className="relative min-h-screen w-full overflow-hidden">
+
+        {/* Background image */}
+        <Image
+          src="/hero-bg-anime.jpg"
+          alt=""
+          fill
+          priority
+          className="object-cover object-center"
+        />
+        {/* Dark scrim — heavier on left where text sits */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
+
+        {/* ── Nav ── */}
+        <header className="absolute top-0 inset-x-0 z-20">
+          <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-5">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2 text-sm font-medium text-white font-geist">
+              Bun.
             </Link>
-            <Link href="/subscriptions" className="text-sm text-oc-gray hover:text-white transition">
-              Browse Services &rarr;
-            </Link>
-          </div>
-        </div>
-      </section>
 
-      {/* Dot Matrix */}
-      <section className="px-6 pb-24">
-        <DotMatrixIllustration />
-      </section>
+            {/* Center nav */}
+            <nav className="hidden md:flex items-center gap-7 text-sm text-white/70">
+              <Link href="/docs" className="hover:text-white transition-colors">Docs</Link>
+              <Link href="/merchant/sandbox" className="hover:text-white transition-colors">Sandbox</Link>
+              <Link href="/dashboard" className="hover:text-white transition-colors">Network</Link>
+              <Link href="/dashboard" className="hover:text-white transition-colors">Company</Link>
+            </nav>
 
-      {/* How it works */}
-      <section className="border-t border-white/5">
-        <div className="px-6 py-24">
-          <div className="mb-12">
-            <span className="text-xs font-medium text-oc-muted uppercase tracking-wider">How it works</span>
-            <h2 className="text-3xl font-bold mt-3 text-white">Subscribe. Use. Settle. Keep your privacy.</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {[
-              { step: "1", title: "Top up", body: "Deposit funds into your BunAccount. You control how much to load." },
-              { step: "2", title: "Subscribe", body: "Browse services and subscribe. Your max spend is escrowed upfront, protecting the provider." },
-              { step: "3", title: "Use the service", body: "The provider reports your usage. You're billed only for what you consume." },
-              { step: "4", title: "Auto-settle", body: "At cycle end, the agent settles automatically. Used funds go to the provider, unused return to you." },
-            ].map((item) => (
-              <div key={item.step}>
-                <div className="w-8 h-8 rounded-full bg-white text-oc-black flex items-center justify-center text-sm font-mono font-bold mb-4">
-                  {item.step}
-                </div>
-                <h3 className="font-semibold mb-2 text-white">{item.title}</h3>
-                <p className="text-sm text-oc-gray leading-relaxed">{item.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Escrow Security */}
-      <section className="border-t border-white/5">
-        <div className="px-6 py-24">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-            <div>
-              <span className="text-xs font-medium text-oc-muted uppercase tracking-wider">Anti-scam by design</span>
-              <h2 className="text-3xl font-bold mt-3 mb-4 text-white">
-                Your funds are escrowed,<br />not held by us.
-              </h2>
-              <p className="text-oc-gray leading-relaxed mb-6">
-                When you subscribe, your max spend is locked in a Soroban Escrow contract.
-                Neither Bun nor the provider can touch it without your authorization.
-                At cycle end, the agent settles automatically no approval step, no chance to scam.
-              </p>
-              <div className="space-y-3 text-sm text-oc-light">
-                <div className="flex items-start gap-2">
-                  <span className="text-oc-lighter mt-0.5">&check;</span>
-                  <span>Provider gets guaranteed payment for used services</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-oc-lighter mt-0.5">&check;</span>
-                  <span>Subscriber gets automatic refund of unused escrow</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-oc-lighter mt-0.5">&check;</span>
-                  <span> All enforced by Stellar smart contracts, not policy</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-center">
-              <EscrowDiagram />
+            {/* Right side */}
+            <div className="flex items-center gap-3">
+              <button className="text-white/60 hover:text-white transition-colors p-1">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                  <circle cx="10" cy="10" r="8.5" stroke="currentColor" strokeWidth="1.2"/>
+                  <ellipse cx="10" cy="10" rx="4" ry="8.5" stroke="currentColor" strokeWidth="1.2"/>
+                  <line x1="1.5" y1="10" x2="18.5" y2="10" stroke="currentColor" strokeWidth="1.2"/>
+                </svg>
+              </button>
+              <Link
+                href="/dashboard"
+                className="rounded-full bg-white text-black text-sm font-medium px-5 py-2 hover:bg-white/90 transition-colors"
+              >
+                Log in
+              </Link>
             </div>
           </div>
+        </header>
+
+        {/* ── Hero text — left aligned, bottom-ish ── */}
+        <div className="absolute inset-0 flex flex-col justify-end pb-20 px-6">
+          <div className="mx-auto w-full max-w-[1400px]">
+            <h1 className="font-geist text-[clamp(2.4rem,6vw,5rem)] font-[440] leading-[1.07] tracking-[-0.03em] text-white max-w-xl mb-5">
+              The next gen payment rail for the new economy.
+            </h1>
+            <p className="text-white/60 text-sm max-w-xs leading-relaxed mb-8">
+              Any app adds Pay with Bun: customers authorize a cap, providers meter real usage, and Soroban escrow enforces settlement.
+            </p>
+
+            {/* Pill CTA */}
+            <Link
+              href="/merchant/sandbox"
+              className="inline-flex items-center rounded-full bg-white text-black text-sm font-medium px-7 py-3.5 hover:bg-white/90 transition-colors mb-10"
+            >
+              Try the merchant flow
+            </Link>
+
+            {/* Trust pills bottom */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-white/50 text-xs">
+              <span className="flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1"/>
+                  <path d="M4.5 7l2 2 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Cap enforced on-chain
+              </span>
+              <span className="flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1"/>
+                  <path d="M4.5 7l2 2 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Soroban escrow
+              </span>
+              <span className="flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1"/>
+                  <path d="M4.5 7l2 2 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Add to any app
+              </span>
+            </div>
+          </div>
         </div>
+
+
       </section>
 
-      {/* Privacy */}
-      <section className="border-t border-white/5">
-        <div className="px-6 py-24">
-          <div className="mb-12">
-            <span className="text-xs font-medium text-oc-muted uppercase tracking-wider">Privacy</span>
-            <h2 className="text-3xl font-bold mt-3 mb-4 text-white">Built for privacy first</h2>
-            <p className="text-oc-gray max-w-lg">
-              Stellar&apos;s BLS12-381 ZK proofs keep your data private even on a public ledger.
-              No single party sees the full picture not the provider, not the agent, not Bun.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { title: "From providers", body: "Your other subscriptions and total balance are invisible to each provider. They only see their own usage and revenue." },
-              { title: "From the agent", body: "The settlement agent coordinates cycles but never sees your BunAccount balance or spending across services." },
-              { title: "From everyone else", body: "No central observer. ZK proofs via BLS12-381 verify settlement without revealing balances to the public ledger." },
-            ].map((item) => (
-              <div key={item.title} className="p-6 border border-white/5 rounded-lg">
-                <h3 className="font-semibold mb-2 text-white">Hidden {item.title.toLowerCase()}</h3>
-                <p className="text-sm text-oc-gray leading-relaxed">{item.body}</p>
-              </div>
-            ))}
-          </div>
+      {/* ══════════════════════════════════════════
+          SECTION 2 — White centered CTA (Plasma scroll)
+      ══════════════════════════════════════════ */}
+      <section className="bg-[#f7f7f5] flex flex-col items-center justify-center text-center px-6 py-36">
+        <div className="flex items-center gap-2 mb-6 text-sm text-black/40 font-mono uppercase tracking-widest">
+          Bun Protocol
         </div>
+        <h2 className="font-geist text-[clamp(2.8rem,8vw,6rem)] font-[460] leading-[1.03] tracking-[-0.04em] text-black max-w-2xl mb-10">
+          A billing flow teams can integrate today.
+        </h2>
+        <Link
+          href="/merchant/sandbox"
+          className="inline-flex items-center gap-2 rounded-full bg-[#3de23d] text-black text-sm font-medium px-8 py-4 hover:bg-[#2fcf2f] transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+            <rect x="2" y="5" width="16" height="12" rx="2" stroke="black" strokeWidth="1.4"/>
+            <path d="M6 5V4a4 4 0 018 0v1" stroke="black" strokeWidth="1.4" strokeLinecap="round"/>
+          </svg>
+          Try the merchant flow
+        </Link>
       </section>
 
-      {/* Pricing comparison */}
-      <section className="border-t border-white/5">
-        <div className="px-6 py-24">
-          <div className="text-center mb-12">
-            <span className="text-xs font-medium text-oc-muted uppercase tracking-wider">Compare</span>
-            <h2 className="text-3xl font-bold mt-3 mb-4 text-white">Pay for usage, not flat fees</h2>
-            <p className="text-oc-gray max-w-lg mx-auto">
-              Flat-rate subscriptions charge you the same whether you use a service twice or every day. Bun charges
-              only for actual consumption.
-            </p>
+      {/* ══════════════════════════════════════════
+          SECTION 3 — Features with floating stats
+      ══════════════════════════════════════════ */}
+      <section className="bg-[#efefed] px-6 py-28 overflow-hidden">
+        <div className="mx-auto max-w-[1400px] text-center mb-16">
+          <div className="text-xs text-black/35 uppercase tracking-widest mb-4 font-mono">Built different</div>
+          <h2 className="font-geist text-[clamp(2rem,5vw,3.8rem)] font-[460] tracking-[-0.04em] text-black">
+            Soroban escrow + ZK verifier.
+          </h2>
+        </div>
+        <div className="mx-auto max-w-[1400px] relative flex justify-center">
+          {/* Left stats */}
+          <div className="hidden lg:flex flex-col gap-5 justify-center mr-10 w-44">
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <div className="text-[2.2rem] font-geist font-[460] tracking-tight text-black leading-none">$0</div>
+              <div className="text-xs text-black/45 mt-2 leading-snug">Billing stack to maintain</div>
+            </div>
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <div className="text-[2.2rem] font-geist font-[460] tracking-tight text-black leading-none">100%</div>
+              <div className="text-xs text-black/45 mt-2 leading-snug">Cap enforced by contract</div>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
-            {[
-              { name: "Netflix", flat: "15.99", unit: "0.26", unitLabel: "/hour" },
-              { name: "Claude AI", flat: "20.00", unit: "0.03", unitLabel: "/API call" },
-              { name: "Spotify", flat: "11.99", unit: "0.004", unitLabel: "/stream" },
-            ].map((svc) => (
-              <div key={svc.name} className="border border-white/5 rounded-lg p-6 bg-white/[0.02]">
-                <h3 className="font-semibold text-lg mb-3 text-white">{svc.name}</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-oc-muted">Flat rate</span>
-                    <span className="line-through text-oc-muted">${svc.flat}/mo</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-oc-gray">Bun</span>
-                    <span className="font-semibold text-white font-mono">${svc.unit}{svc.unitLabel}</span>
-                  </div>
-                  <div className="pt-2 border-t border-white/5 mt-2 text-xs text-oc-muted">
-                    Light users save up to 80%
-                  </div>
+
+          {/* Central mock phone/card */}
+          <div className="w-72 shrink-0">
+            <div className="bg-black rounded-[2.5rem] p-6 shadow-2xl shadow-black/30">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <div className="text-[10px] text-white/30 font-mono uppercase tracking-widest">Pay with Bun</div>
+                  <div className="text-white/60 text-xs mt-0.5">Soroban escrow</div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#3de23d]"/>
+                  <span className="text-[#3de23d] text-[10px]">Active</span>
                 </div>
               </div>
-            ))}
+              <div className="text-xs text-white/35 mb-1">Total authorized</div>
+              <div className="text-[2.5rem] font-geist font-[400] tracking-tight text-white mb-5">$5.00</div>
+              <div className="space-y-2.5 mb-5">
+                {[
+                  { label: "Used", value: "$0.84", color: "text-white" },
+                  { label: "Remaining", value: "$4.16", color: "text-[#3de23d]" },
+                  { label: "Provider", value: "AI Service Co.", color: "text-white/60" },
+                ].map(item => (
+                  <div key={item.label} className="flex justify-between items-center py-2.5 border-b border-white/[0.07]">
+                    <span className="text-xs text-white/35">{item.label}</span>
+                    <span className={`text-xs font-mono ${item.color}`}>{item.value}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full w-[17%] bg-[#3de23d] rounded-full"/>
+              </div>
+              <div className="mt-3 flex justify-between text-[10px] text-white/25">
+                <span>420k tokens</span>
+                <span>17% of cap</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right stats */}
+          <div className="hidden lg:flex flex-col gap-5 justify-center ml-10 w-44">
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <div className="text-[2.2rem] font-geist font-[460] tracking-tight text-black leading-none">3</div>
+              <div className="text-xs text-black/45 mt-2 leading-snug">API calls to go live</div>
+            </div>
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <div className="text-[2.2rem] font-geist font-[460] tracking-tight text-black leading-none">180+</div>
+              <div className="text-xs text-black/45 mt-2 leading-snug">Countries via Stellar</div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="border-t border-white/5">
-        <div className="px-6 py-24">
-          <div className="mb-12">
-            <span className="text-xs font-medium text-oc-muted uppercase tracking-wider">FAQ</span>
-            <h2 className="text-3xl font-bold mt-3 text-white">Frequently asked questions</h2>
+      {/* ══════════════════════════════════════════
+          SECTION 4 — How it works
+      ══════════════════════════════════════════ */}
+      <section className="bg-white px-6 py-28">
+        <div className="mx-auto max-w-[1400px]">
+          <div className="mb-16">
+            <div className="text-xs text-black/35 uppercase tracking-widest mb-4 font-mono">Integration</div>
+            <h2 className="font-geist text-[clamp(2rem,5vw,3.5rem)] font-[460] tracking-[-0.04em] text-black">
+              Four steps. Zero billing stack.
+            </h2>
           </div>
-          <div className="max-w-2xl space-y-3">
+          <div className="grid gap-3 md:grid-cols-4">
             {[
-              {
-                q: "How is this different from normal subscriptions?",
-                a: "Normal subscriptions charge a flat monthly fee regardless of use. Bun charges only for your actual consumption if you don't use it, you don't pay for it. Unused funds are automatically returned to your account.",
-              },
-              {
-                q: "What prevents subscribers from scamming providers?",
-                a: "When you subscribe, your max spend is locked in a Soroban escrow contract. The provider is guaranteed payment for your actual usage. Settlement runs on Stellar with 5-second finality.",
-              },
-              {
-                q: "Who sees my usage data?",
-                a: "Only you and the specific provider you're using. Stellar is a public ledger but ZK proofs via BLS12-381 mean other providers and even Bun itself cannot see your full consumption graph.",
-              },
-              {
-                q: "What is Stellar?",
-                a: "Stellar is a fast, low-cost layer-1 blockchain. It uses Soroban smart contracts (Rust + WASM) with 5-second finality. BLS12-381 curves enable ZK privacy without compromising performance.",
-              },
-              {
-                q: "How does auto-settlement work?",
-                a: "An agent monitors billing cycles. At cycle end, it calculates your usage cost, settles the escrow (pays the provider), and returns any unused funds to your account. No manual approval needed if you enable auto-approve.",
-              },
-            ].map((faq) => (
-              <details key={faq.q} className="border border-white/5 rounded-lg group">
-                <summary className="flex items-center justify-between px-5 py-4 cursor-pointer text-sm font-medium text-white list-none">
-                  <span>{faq.q}</span>
-                  <span className="text-oc-gray text-lg group-open:hidden">+</span>
-                  <span className="text-oc-gray text-lg hidden group-open:block">&minus;</span>
-                </summary>
-                <p className="px-5 pb-4 text-sm text-oc-gray leading-relaxed">{faq.a}</p>
-              </details>
+              { n: "01", title: "Install", body: "Add the Bun SDK or call the REST API from your backend." },
+              { n: "02", title: "Authorize", body: "Redirect customers to hosted Pay with Bun checkout." },
+              { n: "03", title: "Meter", body: "Report usage events from inside your app via one API call." },
+              { n: "04", title: "Settle", body: "Soroban calculates payout and returns unused balance on-chain." },
+            ].map((step) => (
+              <div key={step.n} className="bg-[#f5f5f3] rounded-3xl p-7 hover:bg-[#efefed] transition-colors">
+                <div className="text-xs font-mono text-black/25 mb-6">{step.n}</div>
+                <h3 className="text-lg font-[500] text-black mb-2 tracking-[-0.02em]">{step.title}</h3>
+                <p className="text-sm text-black/50 leading-relaxed">{step.body}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="border-t border-white/5">
-        <div className="px-6 py-24">
-          <h2 className="text-3xl font-bold mb-4 text-white">Stop paying for what you don&apos;t use.</h2>
-          <p className="text-oc-gray mb-8">
-            Bun on Stellar. Usage-based billing with ZK privacy via BLS12-381.
-          </p>
-          <Link href="/dashboard" className="inline-block px-6 py-3 bg-white text-oc-black rounded-md hover:bg-oc-lightest transition font-medium text-sm">
-            Launch App
-          </Link>
+      {/* ══════════════════════════════════════════
+          SECTION 5 — CTA band
+      ══════════════════════════════════════════ */}
+      <section className="bg-white px-6 pb-28">
+        <div className="mx-auto max-w-[1400px]">
+          <div className="bg-black rounded-3xl px-10 py-16 text-center">
+            <h2 className="font-geist text-[clamp(2rem,5vw,3.5rem)] font-[460] tracking-[-0.03em] text-white mb-4">
+              Integrate Bun into your app.
+            </h2>
+            <p className="text-white/40 text-sm mb-8 max-w-md mx-auto leading-relaxed">
+              SDK, hosted checkout, and a usage API. Go live in an afternoon.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                href="/docs"
+                className="rounded-full bg-[#3de23d] text-black text-sm font-medium px-7 py-3.5 hover:bg-[#2fcf2f] transition-colors"
+              >
+                Start building
+              </Link>
+              <Link
+                href="/merchant/sandbox"
+                className="rounded-full border border-white/15 text-white text-sm font-medium px-7 py-3.5 hover:border-white/30 transition-colors"
+              >
+                Try the sandbox
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 text-oc-muted text-sm">
-        <div className="px-6 py-8 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <span className="text-white font-bold font-mono">分 Bun</span>
-            <a href="https://github.com/mateojkk/Bun" className="hover:text-oc-light transition">GitHub</a>
+      {/* ══════════════════════════════════════════
+          FOOTER — dark multi-column
+      ══════════════════════════════════════════ */}
+      <footer className="bg-[#0d0d0b] px-6 py-16">
+        <div className="mx-auto max-w-[1400px]">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-12 mb-16">
+            <Link href="/" className="flex items-center gap-2 text-sm font-medium text-white shrink-0 font-geist">
+              Bun.
+            </Link>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 text-sm">
+              {[
+                { heading: "Products", links: [{ label: "Dashboard", href: "/dashboard" }, { label: "Sandbox", href: "/merchant/sandbox" }, { label: "Checkout", href: "/checkout" }] },
+                { heading: "Developers", links: [{ label: "Docs", href: "/docs" }, { label: "SDK", href: "/docs#sdk" }, { label: "Contracts", href: "/docs#contracts" }] },
+                { heading: "Network", links: [{ label: "Stellar", href: "https://stellar.org" }, { label: "Explorer", href: "https://stellar.expert/explorer/testnet" }] },
+                { heading: "Company", links: [{ label: "Privacy", href: "/privacy" }, { label: "Terms", href: "/terms" }] },
+              ].map((col) => (
+                <div key={col.heading}>
+                  <div className="text-white/25 mb-4 text-xs uppercase tracking-widest">{col.heading}</div>
+                  <ul className="space-y-3 text-white/50">
+                    {col.links.map((link) => (
+                      <li key={link.label}>
+                        <Link href={link.href} className="hover:text-white transition-colors">{link.label}</Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex items-center gap-6">
-            <Link href="/privacy" className="hover:text-oc-light transition">Privacy</Link>
-            <Link href="/terms" className="hover:text-oc-light transition">Terms</Link>
-            <span>Built on Stellar</span>
-            <span>&copy; {new Date().getFullYear()}</span>
+          <div className="border-t border-white/[0.07] pt-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-white/20">
+            <span>&copy; {new Date().getFullYear()} Bun Protocol.</span>
           </div>
         </div>
       </footer>
-    </div>
-  )
-}
 
-function DotMatrixIllustration() {
-  const rows = 12
-  const cols = 24
-  const cells = Array.from({ length: rows * cols }, (_, i) => {
-    const r = Math.floor(i / cols)
-    const c = i % cols
-    const dist = Math.sqrt(Math.pow(c - cols / 2, 2) + Math.pow(r - rows / 2, 2))
-    const opacity = Math.max(0, 1 - dist / (cols / 1.8)) * (0.3 + Math.random() * 0.7)
-    return { r, c, opacity }
-  })
-
-  return (
-    <div className="flex justify-center">
-      <svg width={cols * 12 + 24} height={rows * 12 + 24} viewBox={`0 0 ${cols * 12 + 24} ${rows * 12 + 24}`} className="max-w-full">
-        {cells.map((cell, i) => (
-          <rect key={i} x={12 + cell.c * 12} y={12 + cell.r * 12} width="6" height="6" fill="#8E8B8B" opacity={cell.opacity} rx="1" />
-        ))}
-      </svg>
-    </div>
-  )
-}
-
-function EscrowDiagram() {
-  return (
-    <svg width="260" height="200" viewBox="0 0 260 200" className="max-w-full">
-      <rect x="20" y="60" width="70" height="40" rx="6" fill="none" stroke="#BCBBBB" strokeWidth="1" strokeDasharray="3 2" />
-      <text x="55" y="78" textAnchor="middle" fill="#CFCECD" fontSize="9" fontWeight="600">Account</text>
-      <text x="55" y="92" textAnchor="middle" fill="#8E8B8B" fontSize="7">$100</text>
-
-      <line x1="90" y1="80" x2="130" y2="80" stroke="#8E8B8B" strokeWidth="1.5" markerEnd="url(#arrow)" />
-      <text x="110" y="74" textAnchor="middle" fill="#8E8B8B" fontSize="7">Lock</text>
-
-      <rect x="140" y="50" width="80" height="60" rx="6" fill="none" stroke="#8E8B8B" strokeWidth="1" />
-      <text x="180" y="70" textAnchor="middle" fill="#CFCECD" fontSize="9" fontWeight="600">Escrow</text>
-      <text x="180" y="84" textAnchor="middle" fill="#8E8B8B" fontSize="7">$25 locked</text>
-      <text x="180" y="98" textAnchor="middle" fill="#8E8B8B" fontSize="7">Cycle: 7 days</text>
-
-      <line x1="220" y1="80" x2="200" y2="140" stroke="#8E8B8B" strokeWidth="1.5" markerEnd="url(#arrow)" />
-      <text x="195" y="115" fill="#8E8B8B" fontSize="7">Settle</text>
-
-      <rect x="120" y="138" width="80" height="50" rx="6" fill="none" stroke="#6B6B6B" strokeWidth="1" />
-      <text x="160" y="156" textAnchor="middle" fill="#CFCECD" fontSize="8" fontWeight="600">Payment</text>
-      <text x="160" y="170" textAnchor="middle" fill="#8E8B8B" fontSize="7">$12.50 to provider</text>
-      <text x="160" y="182" textAnchor="middle" fill="#8E8B8B" fontSize="7">$12.50 returned</text>
-
-      <path d="M 140 70 Q 80 30 55 60" fill="none" stroke="#CFCECD" strokeWidth="1.5" strokeDasharray="4 2" markerEnd="url(#arrow-light)" />
-      <text x="80" y="42" textAnchor="middle" fill="#CFCECD" fontSize="7">Refund unused</text>
-
-      <defs>
-        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#8E8B8B" />
-        </marker>
-        <marker id="arrow-light" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#CFCECD" />
-        </marker>
-      </defs>
-    </svg>
+    </main>
   )
 }

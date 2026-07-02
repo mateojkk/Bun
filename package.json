@@ -11,7 +11,11 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
-    "typecheck": "turbo typecheck"
+    "typecheck": "turbo typecheck",
+    "provider:key": "node scripts/create-provider-key.js",
+    "cleanup:subscriptions": "node scripts/cleanup-duplicate-subscriptions.js",
+    "cleanup:subscriptions:dry-run": "node scripts/cleanup-duplicate-subscriptions.js --dry-run",
+    "test": "node --test tests/*.test.js"
   },
   "devDependencies": {
     "turbo": "^2.0.0"

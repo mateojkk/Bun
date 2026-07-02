@@ -1,58 +1,46 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node"
-import {
-  SorobanRpc,
-  Contract,
-  Keypair,
-  TransactionBuilder,
-  BASE_FEE,
-  Networks,
-} from "@stellar/stellar-sdk"
+import { execSync } from "child_process"
+import type { ApiRequest, JsonResponse } from "../types"
 
-const rpc = new SorobanRpc.Server(
-  process.env.STELLAR_RPC || "https://soroban-testnet.stellar.org"
-)
-const agentKeypair = Keypair.fromSecret(
-  process.env.AGENT_SECRET || Keypair.random().secret()
-)
+const CLI = "stellar"
+const SECRET = process.env.AGENT_SECRET || ""
+
+function cli(args: string): string {
+  try {
+    return execSync(`${CLI} ${args} 2>&1`, { encoding: "utf-8", timeout: 60000 })
+  } catch (e: any) {
+    if (e.stdout) return e.stdout
+    return JSON.stringify({ error: e.message?.slice?.(0, 200) || "cli failed" })
+  }
+}
 
 export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
+  req: ApiRequest<{ subscriber?: string; serviceName?: string }>,
+  res: JsonResponse
 ) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "POST only" })
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" })
+
+  const { subscriber, serviceName } = req.body
+  if (!subscriber || !serviceName) {
+    return res.status(400).json({ error: "subscriber and serviceName required" })
   }
 
-  const { escrowContractId } = req.body
-  if (!escrowContractId) {
-    return res.status(400).json({ error: "escrowContractId required" })
-  }
-
-  const settled: string[] = []
+  const escrowId = process.env.ESCROW_CONTRACT_ID
+  if (!escrowId) return res.status(500).json({ error: "Missing ESCROW_CONTRACT_ID" })
 
   try {
-    const source = await rpc.getAccount(
-      agentKeypair.publicKey()
+    const out = cli(
+      `contract invoke --id ${escrowId} --network testnet --source-account ${SECRET} -- settle` +
+      ` --subscriber ${subscriber}` +
+      ` --service_name ${serviceName}`
     )
-    const contract = new Contract(escrowContractId)
-    const tx = new TransactionBuilder(source, {
-      fee: BASE_FEE,
-      networkPassphrase: Networks.TESTNET,
-    })
-      .addOperation(contract.call("settle"))
-      .setTimeout(30)
-      .build()
-
-    const prepared = await rpc.prepareTransaction(tx)
-    prepared.sign(agentKeypair)
-
-    const result = await rpc.sendTransaction(prepared)
-    settled.push(escrowContractId)
+    
+    if (!out.includes("successfully")) {
+      throw new Error(out.slice(0, 200))
+    }
 
     res.status(200).json({
       status: "agent_cycle_complete",
-      settled,
-      hash: result.hash,
+      settled: [subscriber],
       timestamp: new Date().toISOString(),
     })
   } catch (err: any) {

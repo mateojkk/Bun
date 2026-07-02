@@ -2,10 +2,15 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "分 Bun. Pay only for what you use.",
+  title: "Bun. Pay only for what you use.",
   description:
     "Privacy-preserving usage-based commerce on Stellar. Escrowed. Automated. ZK-verified.",
 }
+
+import { GeistSans } from "geist/font/sans"
+import { Inter } from "next/font/google"
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
 export default function RootLayout({
   children,
@@ -13,9 +18,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark h-full">
+    <html lang="en" className={`dark h-full ${GeistSans.variable} ${inter.variable}`}>
       <body
-        className="font-sans bg-oc-black text-oc-light antialiased min-h-screen"
+        className="font-sans bg-[#fafafa] text-oc-black antialiased min-h-screen"
       >
         {children}
       </body>

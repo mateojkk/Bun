@@ -5,11 +5,10 @@ import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 
 const links = [
-  { href: "/account", label: "Account" },
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/subscriptions", label: "Services" },
+  { href: "/subscriptions", label: "Subscriptions" },
   { href: "/usage", label: "Usage" },
-  { href: "/settlements", label: "Settlements" },
+  { href: "/profile", label: "Profile" },
 ]
 
 export default function NavLinks() {
@@ -23,31 +22,35 @@ export default function NavLinks() {
   )?.label || "Menu"
 
   useEffect(() => {
-    for (const link of links) {
-      const active =
-        pathname === link.href ||
-        pathname.startsWith(link.href + "/")
-      if (active) {
-        const el = activeRefs.current.get(link.href)
-        if (el) {
-          const parent = el.parentElement
-          if (parent) {
-            const parentRect = parent.getBoundingClientRect()
-            const elRect = el.getBoundingClientRect()
-            setIndicator({
-              left: elRect.left - parentRect.left,
-              width: elRect.width,
-            })
+    // slight delay to let font load / layout settle before measuring
+    const measure = () => {
+      for (const link of links) {
+        const active = pathname === link.href || pathname.startsWith(link.href + "/")
+        if (active) {
+          const el = activeRefs.current.get(link.href)
+          if (el) {
+            const parent = el.parentElement
+            if (parent) {
+              const parentRect = parent.getBoundingClientRect()
+              const elRect = el.getBoundingClientRect()
+              setIndicator({
+                left: elRect.left - parentRect.left,
+                width: elRect.width,
+              })
+            }
           }
         }
       }
     }
+    measure()
+    window.addEventListener("resize", measure)
+    return () => window.removeEventListener("resize", measure)
   }, [pathname])
 
   return (
     <div className="relative">
       {/* desktop */}
-      <div className="hidden sm:flex gap-4 text-sm text-oc-gray relative">
+      <div className="hidden sm:flex gap-4 text-sm text-black/50 relative">
         {links.map((link) => {
           const active =
             pathname === link.href ||
@@ -59,8 +62,8 @@ export default function NavLinks() {
               ref={(el) => {
                 if (el) activeRefs.current.set(link.href, el)
               }}
-              className={`hover:text-white transition-colors duration-200 ${
-                active ? "text-white" : ""
+              className={`py-4 transition-colors duration-300 relative ${
+                active ? "text-black font-medium" : "hover:text-black"
               }`}
             >
               {link.label}
@@ -68,11 +71,10 @@ export default function NavLinks() {
           )
         })}
         <span
-          className="absolute bottom-0 h-px bg-oc-light transition-all duration-300 ease-out"
+          className="absolute bottom-3 h-[2px] bg-black transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] rounded-full"
           style={{
             left: `${indicator.left}px`,
             width: `${indicator.width}px`,
-            transform: "translateY(6px)",
           }}
         />
       </div>
@@ -81,9 +83,9 @@ export default function NavLinks() {
       <div className="sm:hidden">
         <button
           onClick={() => setOpen(!open)}
-          className="flex items-center gap-1 text-sm text-oc-gray hover:text-white transition"
+          className="flex items-center gap-1 text-sm text-black/50 hover:text-black transition"
         >
-          <span>{activeLabel}</span>
+          <span className="text-black font-medium">{activeLabel}</span>
           <svg
             width="10"
             height="6"
@@ -102,7 +104,7 @@ export default function NavLinks() {
           </svg>
         </button>
         {open && (
-          <div className="absolute top-full right-0 mt-2 w-40 border border-white/5 bg-oc-black rounded-md z-20">
+          <div className="absolute top-full left-0 mt-2 w-48 border border-black/10 bg-white rounded-lg shadow-lg z-20 overflow-hidden">
             {links.map((link) => {
               const active =
                 pathname === link.href ||
@@ -112,10 +114,8 @@ export default function NavLinks() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setOpen(false)}
-                  className={`block px-4 py-2 text-sm hover:text-white transition-colors duration-200 ${
-                    active
-                      ? "text-white bg-white/5"
-                      : "text-oc-gray"
+                  className={`block px-4 py-2 text-sm transition-colors ${
+                    active ? "text-black font-medium bg-black/5" : "text-black/60 hover:text-black hover:bg-black/5"
                   }`}
                 >
                   {link.label}

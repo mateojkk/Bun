@@ -1,159 +1,85 @@
+const sections = [
+  {
+    title: "What Bun collects",
+    body: [
+      "Privy handles email OTP authentication. Bun receives a Privy user id after successful login.",
+      "Bun stores your display name, Stellar public key, generated account metadata, subscription authorizations, and usage events reported by integrated providers.",
+      "Provider records include app name, provider name, unit price, max spend, quantity used, calculated amount, and settlement state.",
+    ],
+  },
+  {
+    title: "What providers see",
+    body: [
+      "A provider only sees the Bun subscription id and usage records for its own app.",
+      "Providers do not receive your full Bun account graph, unrelated subscriptions, or global usage history.",
+      "In the Sandbox AI fixture, usage is simulated. In a real integration, the provider tracks usage inside its own product and reports it to Bun.",
+    ],
+  },
+  {
+    title: "On-chain visibility",
+    body: [
+      "Stellar testnet transactions and Soroban contract state can be publicly visible.",
+      "Escrow amounts, usage counts, settlement calls, and public keys may be inspectable by ledger observers.",
+      "Do not use testnet keys or testnet behavior as a privacy guarantee for production assets.",
+    ],
+  },
+  {
+    title: "Balance privacy direction",
+    body: [
+      "The current ZK verifier is a SHA256 commit-reveal prototype.",
+      "It is intended to demonstrate private balance verification direction, not full production anonymity.",
+      "Future versions can upgrade this to stronger zero-knowledge proofs for private cross-provider balance checks.",
+    ],
+  },
+  {
+    title: "Cookies and sessions",
+    body: [
+      "Bun uses httpOnly cookies such as bun_party and bun_name to protect the app session.",
+      "These cookies are used for routing authenticated dashboard requests and are cleared on logout.",
+      "Bun does not use advertising pixels or third-party marketing trackers.",
+    ],
+  },
+  {
+    title: "Subprocessors",
+    body: [
+      "Privy provides authentication.",
+      "MongoDB Atlas stores account, authorization, subscription, and usage records.",
+      "Stellar testnet and Soroban execute the escrow and settlement contract path.",
+    ],
+  },
+]
+
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-oc-black">
-      <div className="px-6 py-12 max-w-3xl mx-auto">
-        <article>
-          <h1 className="text-3xl font-bold text-white mb-2">Privacy Policy</h1>
-          <p className="text-oc-muted text-sm mb-10">
-            Last updated: June 2026 · Pre-Launch Testnet Phase
-          </p>
+    <main className="bun-shell min-h-screen">
+      <div className="mx-auto max-w-4xl px-5 py-12">
+        <a href="/" className="font-geist text-sm font-light text-white">Bun.</a>
+        <div className="mt-10 mb-12">
+          <div className="bun-chip mb-4">Pre-launch testnet policy</div>
+          <h1 className="text-4xl font-semibold tracking-normal text-white">Privacy Policy</h1>
+          <p className="mt-3 text-sm text-oc-muted">Last updated: June 2026</p>
+        </div>
 
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-3">1. What We Collect</h2>
-            <p className="text-oc-gray leading-relaxed mb-3">
-              To operate the Bun service, we collect the following basic information:
-            </p>
-            <ul className="text-oc-gray leading-relaxed space-y-2 list-disc list-inside mb-3">
-              <li>
-                <strong className="text-white">Authentication data</strong> is processed via Privy during passwordless OTP login. We receive a secure unique identifier from Privy but do not store your raw email address on our servers.
-              </li>
-              <li>
-                A <strong className="text-white">Stellar public key (partyId)</strong> is generated upon account creation to identify your account on the ledger and route payments.
-              </li>
-              <li>
-                A <strong className="text-white">username</strong> of your choice is stored in our database alongside your public key to personalise the interface.
-              </li>
-            </ul>
-            <p className="text-oc-gray leading-relaxed">
-              We do not collect physical addresses, telephone numbers, governmental identification, or traditional
-              credit/debit card information.
+        <div className="space-y-5">
+          {sections.map((section) => (
+            <section key={section.title} className="bun-panel rounded-lg p-5">
+              <h2 className="mb-3 text-xl font-semibold text-white">{section.title}</h2>
+              <ul className="space-y-2 text-sm leading-6 text-oc-muted">
+                {section.body.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </section>
+          ))}
+
+          <section className="bun-panel rounded-lg p-5">
+            <h2 className="mb-3 text-xl font-semibold text-white">Data retention and deletion</h2>
+            <p className="text-sm leading-6 text-oc-muted">
+              During testnet, Bun retains records for product testing and demo continuity. Stellar testnet data may reset independently. For deletion or privacy requests, contact <span className="text-oc-light">privacy@bun.finance</span>.
             </p>
           </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-3">2. What We Do NOT Collect</h2>
-            <p className="text-oc-gray leading-relaxed mb-3">
-              <strong className="text-white">Your private keys are never stored on our servers.</strong> Your
-              Stellar secret key is managed securely in-memory within your browser and is never transmitted to
-              or accessible by Bun.
-            </p>
-            <p className="text-oc-gray leading-relaxed">
-              All payment locking, tracking, and settlements are executed programmatically via smart contracts on the
-              Stellar network. Bun does not intermediate the transfer of capital or hold custody of subscriber/provider tokens.
-            </p>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-3">3. On-Chain Transaction Public Visibility</h2>
-            <p className="text-oc-gray leading-relaxed mb-3">
-              Bun uses the public Stellar ledger to ensure secure, trustless payment guarantees. By design, certain
-              transaction components are <strong className="text-white">permanently and publicly visible</strong> on-chain
-              to any ledger auditor:
-            </p>
-            <ul className="text-oc-gray leading-relaxed space-y-2 list-disc list-inside mb-3">
-              <li>Escrow limits locked upon active subscriptions</li>
-              <li>Consumption metrics reported to the contract by service providers</li>
-              <li>Cycle-end settlement distribution amounts between parties</li>
-              <li>Associated Stellar public keys (partyIds)</li>
-            </ul>
-            <p className="text-oc-gray leading-relaxed">
-              This public visibility is standard across public blockchain networks. We advise against conducting
-              sensitive business transactions under public keys that you wish to keep entirely unlinkable to your real-world identity.
-            </p>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-3">4. ZK Privacy (Balance Commitments)</h2>
-            <p className="text-oc-gray leading-relaxed mb-3">
-              To protect subscriber wallet balances from merchant tracking, Bun employs a SHA-256 commit-reveal pattern
-              in its ZK Verifier contract:
-            </p>
-            <ol className="text-oc-gray leading-relaxed space-y-2 list-decimal list-inside mb-3">
-              <li>
-                Subscribers commit to their balance cryptographically on-chain: <code className="text-oc-lighter bg-white/5 px-1 rounded">sha256(balance + salt)</code>.
-              </li>
-              <li>
-                During settlement verification, the contract verifies the commitment against the required amount.
-              </li>
-              <li>
-                Providers verify that the subscriber has sufficient funds to settle their billing cap, but never
-                learn the subscriber&apos;s actual wallet balance.
-              </li>
-            </ol>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-3">5. Cookies</h2>
-            <p className="text-oc-gray leading-relaxed mb-3">
-              We set two secure, session-scoped <strong className="text-white">httpOnly</strong> cookies:
-            </p>
-            <ul className="text-oc-gray leading-relaxed space-y-2 list-disc list-inside mb-3">
-              <li>
-                The <code className="text-oc-lighter bg-white/5 px-1 rounded">bun_party</code> cookie stores your public key and is used to route your session securely.
-              </li>
-              <li>
-                The <code className="text-oc-lighter bg-white/5 px-1 rounded">bun_name</code> cookie stores your display username for interface personalisation.
-              </li>
-            </ul>
-            <p className="text-oc-gray leading-relaxed">
-              These cookies contain no personal identifiers and are immediately destroyed when you log out. We do not run third-party tracker, advertising, or marketing pixels.
-            </p>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-3">6. Integrated Subprocessors</h2>
-            <p className="text-oc-gray leading-relaxed mb-3">
-              Bun integrates with standard developer infrastructure platforms to maintain its service:
-            </p>
-            <ul className="text-oc-gray leading-relaxed space-y-2 list-disc list-inside mb-3">
-              <li>
-                <strong className="text-white">Privy</strong> handles secure email OTP authentication. For details, see the privacy policy at <span className="text-oc-lighter">privy.io</span>.
-              </li>
-              <li>
-                <strong className="text-white">MongoDB Atlas</strong> hosts our cloud database, which stores account public keys and usernames. For details, see the compliance documentation at <span className="text-oc-lighter">mongodb.com</span>.
-              </li>
-              <li>
-                The <strong className="text-white">Stellar Network</strong> is the execution protocol on which all escrow smart contracts operate.
-              </li>
-            </ul>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-3">7. Data Retention & Maintenance</h2>
-            <p className="text-oc-gray leading-relaxed mb-3">
-              During this pre-launch testnet phase, database environments are maintained to preserve staging profiles, though they remain subject to testnet network adjustments:
-            </p>
-            <ul className="text-oc-gray leading-relaxed space-y-2 list-disc list-inside mb-3">
-              <li>
-                MongoDB database profiles are retained for testing consistency but may undergo migrations as we optimize system structures.
-              </li>
-              <li>
-                Stellar testnet ledger history is subject to periodic resets performed by the Stellar Development Foundation.
-              </li>
-              <li>
-                Users can easily request profile deletion by contacting us at the support address below.
-              </li>
-            </ul>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-white mb-3">8. Zero Monetization of Data</h2>
-            <p className="text-oc-gray leading-relaxed">
-              Bun is a utility payment protocol. We do not monetize your data. We do not sell, rent, lease, or share
-              user profile logs or transaction details with third-party data brokers, marketers, or advertisers. Your data
-              is used exclusively to facilitate your subscription transactions.
-            </p>
-          </section>
-
-          <section className="mb-8 border-t border-white/5 pt-8 mt-8">
-            <h2 className="text-xl font-semibold text-white mb-3">9. Contact & Support</h2>
-            <p className="text-oc-gray leading-relaxed">
-              For security compliance, data access requests, or privacy inquiries, contact our development desk at:{" "}
-              <span className="text-oc-lighter">privacy@bun.finance</span>
-            </p>
-          </section>
-        </article>
+        </div>
       </div>
-    </div>
+    </main>
   )
 }

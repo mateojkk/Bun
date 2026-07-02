@@ -19,7 +19,7 @@ function SubscribeForm() {
   async function handleSubscribe() {
     if (!amount || Number(amount) <= 0) return
     setLoading(true)
-    setStatus("Simulating transaction...")
+    setStatus("Creating Soroban escrow authorization...")
     try {
       const res = await fetch("/api/stellar/subscribe", {
         method: "POST",
@@ -48,7 +48,7 @@ function SubscribeForm() {
   }
 
   return (
-    <div className="px-4 sm:px-6 py-6 max-w-lg">
+    <div className="px-4 sm:px-6 py-6 max-w-[1400px] mx-auto">
       <h1 className="text-2xl font-bold mb-6 text-white">
         Subscribe to {serviceName}
       </h1>
