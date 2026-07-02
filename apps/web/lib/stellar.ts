@@ -1,6 +1,6 @@
 import { execSync } from "child_process"
 
-const CLI = "stellar"
+const CLI = "/tmp/stellar"
 const RPC = process.env.STELLAR_RPC || "https://soroban-testnet.stellar.org"
 const HORIZON = process.env.STELLAR_HORIZON || "https://horizon-testnet.stellar.org"
 const SECRET = process.env.AGENT_SECRET || ""

@@ -23,3 +23,6 @@ bin/
 curl_debug.txt
 update_db.*
 check_db.*
+test_*.*
+*.test.*
+tests/
