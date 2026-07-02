@@ -3,7 +3,6 @@ import { getBalance } from "@/lib/stellar"
 import { listSubscriptionsBySubscriber, findAccountByPartyId } from "@/lib/db"
 import { redirect } from "next/navigation"
 import TopUpForm from "@/components/TopUpForm"
-import ZkCommitForm from "@/components/ZkCommitForm"
 import CopyAddress from "@/components/CopyAddress"
 
 export default async function Dashboard() {
@@ -85,14 +84,6 @@ export default async function Dashboard() {
           </div>
           <TopUpForm publicKey={partyId} balance={balance} />
         </div>
-      </div>
-
-      <div className="pt-4">
-        <ZkCommitForm
-          initialCommitted={committed}
-          initialStale={stale}
-          initialCommittedUsdc={committedUsdc}
-        />
       </div>
     </div>
   )

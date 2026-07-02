@@ -26,3 +26,12 @@ check_db.*
 test_*.*
 *.test.*
 tests/
+
+# ZK Generated Files
+circuits/balance_js/
+circuits/*.ptau
+circuits/*.r1cs
+circuits/*.zkey
+circuits/*.sym
+circuits/verification_key.json
+temp_bindings/

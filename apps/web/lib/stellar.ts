@@ -45,34 +45,58 @@ function cli(args: string): string {
   }
 }
 
-export async function zkCommitBalance(params: {
-  subscriber: string
-  subscriberSecret: string
-  balanceHashHex: string
-}) {
-  const out = cli(
-    `contract invoke --id ${ZK} --network testnet --source-account ${params.subscriberSecret} -- commit_balance` +
-    ` --subscriber ${params.subscriber}` +
-    ` --balance_hash ${params.balanceHashHex}`
-  )
-  return { ok: out.includes("successfully"), raw: out.slice(0, 200) }
+function toHex48(decimalStr: string) {
+  let hex = BigInt(decimalStr).toString(16);
+  if (hex.length > 96) throw new Error("Value too large for 48 bytes");
+  return hex.padStart(96, '0');
+}
+
+function formatG1(point: string[]) {
+  return toHex48(point[0]) + toHex48(point[1]);
+}
+
+function formatG2(point: string[][]) {
+  return toHex48(point[0][0]) + toHex48(point[0][1]) + toHex48(point[1][0]) + toHex48(point[1][1]);
 }
 
 export async function zkVerifyBalance(params: {
   subscriber: string
   subscriberSecret: string
-  preimageHex: string
+  currentBalanceStroops: number | bigint
   requiredMinimumStroops: number | bigint
 }) {
-  const minimum = typeof params.requiredMinimumStroops === "bigint"
-    ? params.requiredMinimumStroops.toString()
-    : String(params.requiredMinimumStroops)
+  const snarkjs = require("snarkjs");
+  const path = require("path");
+
+  const input = {
+    balance: params.currentBalanceStroops.toString(),
+    required_minimum: params.requiredMinimumStroops.toString(),
+    subscriber_id: "0"
+  };
+
+  const wasmPath = path.join(process.cwd(), "public", "zk_assets", "balance.wasm");
+  const zkeyPath = path.join(process.cwd(), "public", "zk_assets", "balance.zkey");
+
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
+
+  const proofJson = JSON.stringify({
+    a: formatG1(proof.pi_a),
+    b: formatG2(proof.pi_b),
+    c: formatG1(proof.pi_c)
+  });
+
+  const pubSignalsJson = JSON.stringify(publicSignals.map((s: string) => {
+    let hex = BigInt(s).toString(16);
+    return hex.padStart(64, '0');
+  }));
+
   const out = cli(
-    `contract invoke --id ${ZK} --network testnet --source-account ${params.subscriberSecret} -- verify` +
+    `contract invoke --id ${ZK} --network testnet --source-account ${params.subscriberSecret} -- verify_proof` +
     ` --subscriber ${params.subscriber}` +
-    ` --preimage ${params.preimageHex}` +
-    ` --required_minimum ${minimum}`
-  )
+    ` --proof '${proofJson}'` +
+    ` --pub_signals '${pubSignalsJson}'`
+  );
+
   const lowered = out.toLowerCase()
   const ok =
     lowered.includes("true") ||

@@ -15,26 +15,26 @@ export default async function AppLayout({
   return (
     <>
       <nav className="border-b border-black/[0.06] bg-[#fafafa] backdrop-blur-md sticky top-0 z-30">
-        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
-          <div className="flex-1 flex items-center justify-start">
+        <div className="mx-auto max-w-[1400px] px-3 sm:px-6 py-4 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex-1 flex items-center justify-start shrink-0">
             <Link href="/dashboard" className="flex items-center gap-2 text-sm font-medium text-black font-geist">
               Bun.
             </Link>
           </div>
-          <div className="flex-none flex justify-center">
+          <div className="flex-none flex justify-center max-w-[50%]">
             <NavLinks />
           </div>
-          <div className="flex-1 flex items-center justify-end gap-4 text-sm shrink-0">
+          <div className="flex-1 flex items-center justify-end gap-3 sm:gap-4 text-sm shrink-0">
             {name && (
               <div className="flex items-center gap-2">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt="Avatar" className="w-7 h-7 rounded-full object-cover border border-black/10" />
+                  <img src={avatarUrl} alt="Avatar" className="w-7 h-7 rounded-full object-cover border border-black/10 shrink-0" />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-black/5 border border-black/10 flex items-center justify-center text-[11px] font-medium text-black uppercase tracking-wider">
+                  <div className="w-7 h-7 rounded-full bg-black/5 border border-black/10 flex items-center justify-center text-[11px] font-medium text-black uppercase tracking-wider shrink-0">
                     {name.charAt(0)}
                   </div>
                 )}
-                <span className="text-black/60 font-medium">{name}</span>
+                <span className="hidden sm:inline text-black/60 font-medium truncate max-w-[120px]">{name}</span>
               </div>
             )}
             <SignOutButton />

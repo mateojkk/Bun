@@ -1,81 +1,84 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Bytes, BytesN, Env, Symbol};
+use soroban_sdk::{
+    contract, contracterror, contractimpl, contracttype,
+    crypto::bls12_381::{Bls12381Fr as Fr, Bls12381G1Affine as G1Affine, Bls12381G2Affine as G2Affine},
+    vec, Address, Env, Symbol, Vec, symbol_short
+};
 
-#[contracttype]
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum Groth16Error {
+    MalformedVerifyingKey = 1,
+    InvalidProof = 2,
+    NotInitialized = 3,
+}
+
 #[derive(Clone)]
-pub struct BalanceCommitment {
-    pub subscriber: Address,
-    pub committed_hash: BytesN<32>,
-    pub committed_at: u64,
+#[contracttype]
+pub struct VerificationKey {
+    pub alpha: G1Affine,
+    pub beta: G2Affine,
+    pub gamma: G2Affine,
+    pub delta: G2Affine,
+    pub ic: Vec<G1Affine>,
 }
 
-type CommitmentKey = (Symbol, Address);
-
-const BALANCE_KEY: Symbol = symbol_short!("bcomm");
-const BALANCE_LEN: u32 = 8;
-const SALT_LEN: u32 = 32;
-const PREIMAGE_LEN: u32 = BALANCE_LEN + SALT_LEN;
-
-fn commitment_key(subscriber: &Address) -> CommitmentKey {
-    (BALANCE_KEY, subscriber.clone())
+#[derive(Clone)]
+#[contracttype]
+pub struct Proof {
+    pub a: G1Affine,
+    pub b: G2Affine,
+    pub c: G1Affine,
 }
+
+const VK_KEY: Symbol = symbol_short!("vk");
 
 #[contract]
 pub struct ZkVerifierContract;
 
 #[contractimpl]
 impl ZkVerifierContract {
-    /// Commit sha256(stroops_be_8_bytes || salt_32_bytes) keyed per subscriber.
-    pub fn commit_balance(
-        env: Env,
-        subscriber: Address,
-        balance_hash: BytesN<32>,
-    ) {
-        subscriber.require_auth();
-        env.storage().persistent().set(
-            &commitment_key(&subscriber),
-            &BalanceCommitment {
-                subscriber: subscriber.clone(),
-                committed_hash: balance_hash,
-                committed_at: env.ledger().timestamp(),
-            },
-        );
+    pub fn init(env: Env, admin: Address, vk: VerificationKey) {
+        admin.require_auth();
+        env.storage().instance().set(&VK_KEY, &vk);
     }
 
-    /// Verify preimage for subscriber and committed balance >= required_minimum (stroops).
-    pub fn verify(
+    pub fn verify_proof(
         env: Env,
         subscriber: Address,
-        preimage: Bytes,
-        required_minimum: i128,
-    ) -> bool {
-        let commitment: BalanceCommitment = env
+        proof: Proof,
+        pub_signals: Vec<Fr>,
+    ) -> Result<bool, Groth16Error> {
+        subscriber.require_auth();
+
+        let vk: VerificationKey = env
             .storage()
-            .persistent()
-            .get(&commitment_key(&subscriber))
-            .unwrap();
+            .instance()
+            .get(&VK_KEY)
+            .ok_or(Groth16Error::NotInitialized)?;
 
-        if commitment.subscriber != subscriber {
-            return false;
+        let bls = env.crypto().bls12_381();
+
+        if pub_signals.len() + 1 != vk.ic.len() {
+            return Err(Groth16Error::MalformedVerifyingKey);
+        }
+        let mut vk_x = vk.ic.get(0).unwrap();
+        for (s, v) in pub_signals.iter().zip(vk.ic.iter().skip(1)) {
+            let prod = bls.g1_mul(&v, &s);
+            vk_x = bls.g1_add(&vk_x, &prod);
         }
 
-        if preimage.len() != PREIMAGE_LEN {
-            return false;
-        }
+        let neg_a = -proof.a;
+        let vp1 = vec![&env, neg_a, vk.alpha, vk_x, proof.c];
+        let vp2 = vec![&env, proof.b, vk.beta, vk.gamma, vk.delta];
 
-        let hash: BytesN<32> = env.crypto().sha256(&preimage).into();
-        if hash != commitment.committed_hash {
-            return false;
+        let valid = bls.pairing_check(vp1, vp2);
+        
+        if valid {
+            Ok(true)
+        } else {
+            Err(Groth16Error::InvalidProof)
         }
-
-        let mut balance_bytes = [0u8; 8];
-        for i in 0..8u32 {
-            balance_bytes[i as usize] = preimage.get(i).unwrap();
-        }
-        let balance = i64::from_be_bytes(balance_bytes) as i128;
-        balance >= required_minimum
     }
 }
-
-#[cfg(test)]
-mod test;

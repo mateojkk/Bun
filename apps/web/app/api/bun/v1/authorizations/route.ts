@@ -40,20 +40,6 @@ async function verifyZkAuthorization(
   subscriber: string,
   maxSpend: number
 ) {
-  if (!account.zkSalt || !account.zkBalanceStroops || account.zkChainStatus !== "confirmed") {
-    throw new Error("Commit your private balance proof on /dashboard before authorizing spend.")
-  }
-
-  const committedStroops = BigInt(account.zkBalanceStroops)
-  const requiredStroops = BigInt(toStroops(maxSpend))
-  const committedUsdc = Number(committedStroops) / 10_000_000
-
-  if (committedStroops < requiredStroops) {
-    throw new Error(
-      `ZK commitment covers ${committedUsdc.toFixed(2)} USDC. Re-commit on /dashboard to authorize ${maxSpend.toFixed(2)} USDC.`
-    )
-  }
-
   const walletBalance = Number(await getBalance(subscriber).catch(() => "0"))
   if (walletBalance < maxSpend) {
     throw new Error(
@@ -61,16 +47,18 @@ async function verifyZkAuthorization(
     )
   }
 
-  const preimageHex = buildPreimageHex(committedStroops, account.zkSalt)
+  const currentStroops = BigInt(toStroops(walletBalance))
+  const requiredStroops = BigInt(toStroops(maxSpend))
+
   const zk = await zkVerifyBalance({
     subscriber,
     subscriberSecret: account.secretKey,
-    preimageHex,
+    currentBalanceStroops: currentStroops,
     requiredMinimumStroops: requiredStroops,
   })
 
   if (!zk.ok) {
-    throw new Error(`ZK balance verification failed on Soroban: ${zk.raw.slice(0, 50)}. Re-commit on /dashboard.`)
+    throw new Error(`ZK balance verification failed on Soroban: ${zk.raw.slice(0, 50)}.`)
   }
 
   return zk
