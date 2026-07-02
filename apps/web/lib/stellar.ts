@@ -23,12 +23,13 @@ export const CYCLE_SECONDS = Number(process.env.CYCLE_SECONDS || 900)
 function ensureCli() {
   if (fs.existsSync(CLI)) return;
   try {
-    execSync(`curl -sL https://github.com/stellar/stellar-cli/releases/download/v27.0.0/stellar-cli-27.0.0-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C /tmp && chmod +x /tmp/stellar`, {
-      timeout: 30000,
-      stdio: "ignore"
+    execSync(`curl -sL https://github.com/stellar/stellar-cli/releases/download/v22.0.1/stellar-cli-22.0.1-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C /tmp && chmod +x /tmp/stellar`, {
+      timeout: 60000,
+      stdio: "pipe"
     });
-  } catch (e) {
-    console.error("Failed to download stellar CLI");
+  } catch (e: any) {
+    console.error("Failed to download stellar CLI:", e?.stderr?.toString() || e?.message);
+    throw new Error("Could not install stellar-cli: " + (e?.stderr?.toString() || e?.message));
   }
 }
 
